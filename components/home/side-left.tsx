@@ -95,7 +95,7 @@ function GuestNavIcon({
   active: boolean;
   onGate: () => void;
 }) {
-  const base = "flex h-12 w-12 items-center justify-center rounded-[14px] text-[21px]";
+  const base = "focus-ring flex h-12 w-12 items-center justify-center rounded-[14px] text-[21px]";
   if (label === "홈") {
     if (active) {
       return (
@@ -140,7 +140,7 @@ function MenuItem({
   active: boolean;
 }) {
   const base =
-    "mb-px flex w-full items-center gap-3 rounded-[10px] px-3 py-[11px] text-left text-[14.5px]";
+    "focus-ring mb-px flex w-full items-center gap-3 rounded-[10px] px-3 py-[11px] text-left text-[14.5px]";
   if (active) {
     // .mi.on — 현재 화면
     return (

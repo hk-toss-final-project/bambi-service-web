@@ -209,6 +209,16 @@
   }
 }
 
+/* 키보드 포커스 전용 브랜드 링 — hand-rolled 버튼·링크·인터랙션 요소에 focus-visible 시에만 표시한다.
+   outline 사용(overflow-hidden 부모에 잘리지 않고 border-radius 를 따른다). 색·크기·레이아웃은 그대로 두고
+   포커스 표시만 추가한다. shadcn Button/Input 은 자체 ring 을 쓰므로 여기에 적용하지 않는다(중복 금지). */
+@layer components {
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    마크다운 뷰어 (.md-viewer) — 목업 product-components.css .md 1:1.
    카드 상세의 브리핑 본문(content_md 렌더 결과)에 적용.

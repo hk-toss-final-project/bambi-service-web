@@ -1,8 +1,10 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Input } from "@/components/ui/input";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { ERROR_CODES } from "@/constants/errors";
 import { ApiError } from "@/lib/api-client";
 import { createBookmark } from "@/lib/repositories/bookmark";
@@ -47,6 +49,11 @@ export function AddMaterialModal({
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLFormElement>(null);
+
+  // 포커스 트랩 + 배경(#app-shell) inert + 트리거 복원. 초기 포커스는 url 입력의 data-autofocus.
+  // 모달은 아래 createPortal 로 #app-shell 바깥(document.body)에 렌더한다.
+  useFocusTrap(open, dialogRef);
 
   // url·content 중 하나 이상 비공백일 때만 제출 가능(백엔드 검증과 동일 기준). 공백만 입력은 무효.
   const canSubmit = (url.trim() !== "" || content.trim() !== "") && !submitting;
@@ -110,14 +117,15 @@ export function AddMaterialModal({
     }
   }
 
-  return (
-    // .modal-bg — 배경 클릭 시 닫기(제출 중 제외)
+  return createPortal(
+    // .modal-bg — 배경 클릭 시 닫기(제출 중 제외). createPortal 로 #app-shell 바깥(document.body)에 렌더.
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center bg-[rgba(12,14,17,.45)]"
       onClick={close}
     >
       {/* .modal */}
       <form
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="관심 자료 추가"
@@ -133,7 +141,7 @@ export function AddMaterialModal({
             onClick={close}
             disabled={submitting}
             aria-label="닫기"
-            className="rounded-[7px] px-[7px] py-1 text-sm text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
+            className="focus-ring rounded-[7px] px-[7px] py-1 text-sm text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             ✕
           </button>
@@ -160,7 +168,7 @@ export function AddMaterialModal({
             }}
             maxLength={URL_MAX}
             disabled={submitting}
-            autoFocus
+            data-autofocus
             className={FIELD_CLASS}
           />
         </div>
@@ -255,7 +263,7 @@ export function AddMaterialModal({
             type="button"
             onClick={close}
             disabled={submitting}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap text-foreground hover:bg-background disabled:opacity-50"
+            className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap text-foreground hover:bg-background disabled:opacity-50"
           >
             취소
           </button>
@@ -263,12 +271,13 @@ export function AddMaterialModal({
           <button
             type="submit"
             disabled={!canSubmit}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-primary bg-primary px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96] disabled:opacity-50"
+            className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-[10px] border border-primary bg-primary px-[15px] py-[9px] text-[13.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96] disabled:opacity-50"
           >
             {submitting ? "저장 중…" : "저장"}
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

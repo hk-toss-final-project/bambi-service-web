@@ -71,7 +71,7 @@ export function FeedRec({ guest = false }: { guest?: boolean }) {
             </span>
           </div>
           <div className="mb-2 text-lg leading-[1.45] font-bold text-foreground">
-            <Link href="/report/today" className="hover:text-signal-ink">
+            <Link href="/report/today" className="focus-ring rounded-[3px] hover:text-signal-ink">
               {MOCK_TODAY.title}
             </Link>
           </div>
@@ -86,7 +86,7 @@ export function FeedRec({ guest = false }: { guest?: boolean }) {
                 {tag}
               </span>
             ))}
-            <Link href="/report/today" className="ml-auto text-[13px] font-semibold text-signal-ink">
+            <Link href="/report/today" className="focus-ring ml-auto rounded-[3px] text-[13px] font-semibold text-signal-ink">
               {MOCK_TODAY.moreLabel}
             </Link>
           </div>

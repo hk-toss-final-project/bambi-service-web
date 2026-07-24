@@ -52,21 +52,21 @@ function GuestNavRight({ onAdd }: { onAdd: () => void }) {
       <button
         type="button"
         onClick={onAdd}
-        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-ink-mid hover:border-primary hover:text-signal-ink"
+        className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-ink-mid hover:border-primary hover:text-signal-ink"
       >
         ＋ 관심 자료
       </button>
       {/* 로그인 — 보조 */}
       <Link
         href="/login"
-        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-foreground hover:bg-background"
+        className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-foreground hover:bg-background"
       >
         로그인
       </Link>
       {/* 가입하기 — Primary */}
       <Link
         href="/signup"
-        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96]"
+        className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96]"
       >
         가입하기
       </Link>
@@ -92,7 +92,7 @@ function MemberNavRight({ onAddOpen }: { onAddOpen: () => void }) {
       <button
         type="button"
         onClick={onAddOpen}
-        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96]"
+        className="focus-ring inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-3 py-[7px] text-[12.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96]"
       >
         ＋ 관심 자료
       </button>
@@ -101,8 +101,9 @@ function MemberNavRight({ onAddOpen }: { onAddOpen: () => void }) {
       <button
         type="button"
         aria-disabled="true"
+        aria-label="알림"
         title="알림"
-        className="relative flex h-[38px] w-[38px] items-center justify-center rounded-full border border-border bg-card text-[15px] text-ink-mid"
+        className="focus-ring relative flex h-[38px] w-[38px] items-center justify-center rounded-full border border-border bg-card text-[15px] text-ink-mid"
       >
         <svg
           viewBox="0 0 16 16"
@@ -154,7 +155,7 @@ function AvatarMenu() {
         aria-label="내 계정"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-input bg-background text-[12.5px] font-bold text-ink-mid hover:border-wash-strong"
+        className="focus-ring flex h-[34px] w-[34px] items-center justify-center rounded-full border border-input bg-background text-[12.5px] font-bold text-ink-mid hover:border-wash-strong"
       >
         {initial}
       </button>
@@ -182,7 +183,7 @@ function AvatarMenu() {
               setOpen(false);
               logoutUser();
             }}
-            className="w-full rounded-lg px-2.5 py-2 text-left text-[13.5px] font-semibold text-foreground hover:bg-background"
+            className="focus-ring w-full rounded-lg px-2.5 py-2 text-left text-[13.5px] font-semibold text-foreground hover:bg-background"
           >
             로그아웃
           </button>

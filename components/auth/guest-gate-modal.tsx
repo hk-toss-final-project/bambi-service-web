@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import { Orb } from "@/components/brand/orb";
 import type { GuestGateMode } from "@/components/auth/use-require-auth";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 /**
  * GuestGateModal — 인증 필요 액션 차단 시 뜨는 가입 유도/오류 안내 모달.
@@ -31,7 +33,11 @@ export function GuestGateModal({
   onRetry: () => void;
 }) {
   const router = useRouter();
-  const primaryRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // 포커스 트랩 + 배경(#app-shell) inert + 트리거 복원. 초기 포커스는 주 CTA 의 data-autofocus.
+  // 모달은 아래 createPortal 로 #app-shell 바깥(document.body)에 렌더한다.
+  useFocusTrap(open, dialogRef);
 
   // Esc 로 닫기
   useEffect(() => {
@@ -42,11 +48,6 @@ export function GuestGateModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
-
-  // 열릴 때 주 CTA 에 포커스
-  useEffect(() => {
-    if (open) primaryRef.current?.focus();
-  }, [open, mode]);
 
   if (!open) return null;
 
@@ -66,12 +67,12 @@ export function GuestGateModal({
   }
 
   const primaryBtn =
-    "flex h-[46px] w-full items-center justify-center gap-[9px] rounded-[10px] border border-primary bg-primary text-[14.5px] font-semibold text-primary-foreground hover:brightness-[.96]";
+    "focus-ring flex h-[46px] w-full items-center justify-center gap-[9px] rounded-[10px] border border-primary bg-primary text-[14.5px] font-semibold text-primary-foreground hover:brightness-[.96]";
   const secondaryBtn =
-    "flex h-[46px] w-full items-center justify-center gap-[9px] rounded-[10px] border border-border bg-card text-[14.5px] font-semibold text-foreground hover:bg-background";
+    "focus-ring flex h-[46px] w-full items-center justify-center gap-[9px] rounded-[10px] border border-border bg-card text-[14.5px] font-semibold text-foreground hover:bg-background";
 
-  return (
-    // .modal-bg — backdrop(대비 강화), 클릭 시 닫기
+  return createPortal(
+    // .modal-bg — backdrop(대비 강화), 클릭 시 닫기. createPortal 로 #app-shell 바깥(document.body)에 렌더.
     <div
       className="fixed inset-0 z-[130] flex items-center justify-center bg-[rgba(12,14,17,.62)]"
       onClick={onClose}
@@ -80,6 +81,7 @@ export function GuestGateModal({
       <div
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
         aria-labelledby="guest-gate-title"
         aria-describedby="guest-gate-desc"
         onClick={(e) => e.stopPropagation()}
@@ -101,7 +103,7 @@ export function GuestGateModal({
         <div className="mt-5 flex flex-col gap-2.5">
           {isError ? (
             <>
-              <button ref={primaryRef} type="button" onClick={onRetry} className={primaryBtn}>
+              <button data-autofocus type="button" onClick={onRetry} className={primaryBtn}>
                 다시 시도
               </button>
               <button type="button" onClick={onClose} className={secondaryBtn}>
@@ -110,7 +112,7 @@ export function GuestGateModal({
             </>
           ) : (
             <>
-              <button ref={primaryRef} type="button" onClick={goSignup} className={primaryBtn}>
+              <button data-autofocus type="button" onClick={goSignup} className={primaryBtn}>
                 가입하기
               </button>
               <button type="button" onClick={goLogin} className={secondaryBtn}>
@@ -119,7 +121,7 @@ export function GuestGateModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-0.5 text-[13px] text-muted-foreground hover:text-ink-mid"
+                className="focus-ring mt-0.5 text-[13px] text-muted-foreground hover:text-ink-mid"
               >
                 계속 둘러볼게요
               </button>
@@ -127,6 +129,7 @@ export function GuestGateModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

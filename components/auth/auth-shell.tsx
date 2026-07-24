@@ -100,7 +100,7 @@ export function AuthShell({
  */
 export function AuthBack({ href }: { href?: string }) {
   const className =
-    "-ml-2.5 inline-flex items-center gap-[7px] self-start rounded-[9px] px-2.5 py-[7px] text-[13.5px] font-semibold text-ink-mid hover:bg-background hover:text-foreground";
+    "focus-ring -ml-2.5 inline-flex items-center gap-[7px] self-start rounded-[9px] px-2.5 py-[7px] text-[13.5px] font-semibold text-ink-mid hover:bg-background hover:text-foreground";
   const inner = (
     <>
       <svg

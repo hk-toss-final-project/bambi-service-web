@@ -106,7 +106,7 @@ function StateActionButton({
   size?: "compact" | "page";
 }) {
   const cls = cn(
-    "inline-flex items-center justify-center rounded-[10px] border font-semibold",
+    "focus-ring inline-flex items-center justify-center rounded-[10px] border font-semibold",
     size === "page" ? "h-11 w-full px-4 text-[14px]" : "h-9 px-4 text-[13px]",
     action.variant === "primary"
       ? "border-primary bg-primary text-primary-foreground hover:brightness-[.96]"

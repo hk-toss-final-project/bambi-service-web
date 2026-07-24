@@ -194,7 +194,7 @@ function HomeAuthError({ onRetry }: { onRetry: () => void }) {
             <button
               type="button"
               onClick={onRetry}
-              className="flex h-[46px] w-full items-center justify-center rounded-[10px] border border-primary bg-primary text-[14.5px] font-semibold text-primary-foreground hover:brightness-[.96]"
+              className="focus-ring flex h-[46px] w-full items-center justify-center rounded-[10px] border border-primary bg-primary text-[14.5px] font-semibold text-primary-foreground hover:brightness-[.96]"
             >
               다시 시도
             </button>
@@ -225,7 +225,7 @@ function TabButton({
       aria-selected={active}
       aria-controls={`panel-${id}`}
       onClick={onSelect}
-      className={`flex-1 text-center text-[14.5px] font-semibold ${
+      className={`focus-ring flex-1 rounded-[6px] text-center text-[14.5px] font-semibold ${
         active ? "text-foreground" : "text-muted-foreground hover:text-ink-mid"
       }`}
     >

@@ -91,7 +91,7 @@ function ReportView({ report, isMember }: { report: ReportDetail; isMember: bool
 
   // readbar .btn.ghost.sm (+ .on 상태)
   const ghostBtn =
-    "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border px-3 text-[12.5px] font-semibold whitespace-nowrap";
+    "focus-ring inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border px-3 text-[12.5px] font-semibold whitespace-nowrap";
   const ghostOff = "border-border bg-transparent text-ink-mid hover:bg-background";
   const ghostOn = "border-wash-strong bg-wash text-signal-ink";
 
@@ -112,7 +112,7 @@ function ReportView({ report, isMember }: { report: ReportDetail; isMember: bool
               {/* 뒤로 — 홈으로 실제 이동 */}
               <Link
                 href="/"
-                className="flex items-center gap-2 text-[13.5px] font-semibold whitespace-nowrap text-ink-mid"
+                className="focus-ring flex items-center gap-2 rounded-[6px] text-[13.5px] font-semibold whitespace-nowrap text-ink-mid"
               >
                 <span className="text-muted-foreground">←</span>
                 {report.readbar.backLabel}
@@ -271,7 +271,7 @@ function ReportView({ report, isMember }: { report: ReportDetail; isMember: bool
                 <button
                   type="button"
                   onClick={() => requireAuth(() => {})}
-                  className="flex h-[42px] flex-1 items-center rounded-[21px] border border-border bg-background px-4 text-left text-[13px] text-muted-foreground hover:border-wash-strong"
+                  className="focus-ring flex h-[42px] flex-1 items-center rounded-[21px] border border-border bg-background px-4 text-left text-[13px] text-muted-foreground hover:border-wash-strong"
                 >
                   {report.comments.inputPlaceholder}
                 </button>
@@ -418,13 +418,13 @@ function ReportAuthError({ onRetry }: { onRetry: () => void }) {
             <button
               type="button"
               onClick={onRetry}
-              className="flex h-[46px] w-full items-center justify-center rounded-[10px] border border-primary bg-primary text-[14.5px] font-semibold text-primary-foreground hover:brightness-[.96]"
+              className="focus-ring flex h-[46px] w-full items-center justify-center rounded-[10px] border border-primary bg-primary text-[14.5px] font-semibold text-primary-foreground hover:brightness-[.96]"
             >
               다시 시도
             </button>
             <Link
               href="/"
-              className="flex h-[46px] w-full items-center justify-center rounded-[10px] border border-border bg-card text-[14.5px] font-semibold text-foreground hover:bg-background"
+              className="focus-ring flex h-[46px] w-full items-center justify-center rounded-[10px] border border-border bg-card text-[14.5px] font-semibold text-foreground hover:bg-background"
             >
               홈으로
             </Link>
@@ -536,13 +536,13 @@ function GuestStickyCta() {
         </div>
         <Link
           href="/login"
-          className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-border bg-card px-4 text-[13.5px] font-semibold whitespace-nowrap text-foreground hover:bg-background"
+          className="focus-ring inline-flex h-[42px] items-center justify-center rounded-[10px] border border-border bg-card px-4 text-[13.5px] font-semibold whitespace-nowrap text-foreground hover:bg-background"
         >
           로그인
         </Link>
         <Link
           href="/signup"
-          className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-primary bg-primary px-4 text-[13.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96]"
+          className="focus-ring inline-flex h-[42px] items-center justify-center rounded-[10px] border border-primary bg-primary px-4 text-[13.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96]"
         >
           가입하기
         </Link>

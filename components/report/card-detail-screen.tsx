@@ -59,7 +59,7 @@ function CardDetailView({ card }: { card: CardResponse }) {
             <div className="sticky top-4 z-20 mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-[9px] shadow-[var(--shadow)]">
               <Link
                 href="/"
-                className="flex items-center gap-2 text-[13.5px] font-semibold whitespace-nowrap text-ink-mid hover:text-signal-ink"
+                className="focus-ring flex items-center gap-2 rounded-[6px] text-[13.5px] font-semibold whitespace-nowrap text-ink-mid hover:text-signal-ink"
               >
                 <span className="text-muted-foreground">←</span>
                 홈 피드로
@@ -120,7 +120,7 @@ function CardDetailView({ card }: { card: CardResponse }) {
                             href={source.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="ml-auto shrink-0 text-xs font-semibold whitespace-nowrap text-signal-ink hover:underline"
+                            className="focus-ring ml-auto shrink-0 rounded-[3px] text-xs font-semibold whitespace-nowrap text-signal-ink hover:underline"
                           >
                             원문 열기 ↗
                           </a>

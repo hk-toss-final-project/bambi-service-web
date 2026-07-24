@@ -32,9 +32,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <GuestGateProvider>{children}</GuestGateProvider>
-        </AuthProvider>
+        {/* 앱 셸 — 모달이 열리면 이 요소를 inert + aria-hidden 처리해 배경(키보드·스크린리더)을 격리한다.
+            모달은 createPortal 로 이 요소 바깥(document.body)에 렌더되어 자신은 inert 되지 않는다. */}
+        <div id="app-shell" className="flex min-h-full flex-1 flex-col">
+          <AuthProvider>
+            <GuestGateProvider>{children}</GuestGateProvider>
+          </AuthProvider>
+        </div>
       </body>
     </html>
   );

@@ -22,7 +22,7 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
 
       {/* 제목 — /report/{publicId} 내부 링크(publicId). 제목만 감싸 sources 외부 링크와 중첩되지 않는다. */}
       <h3 className="mb-2 text-lg leading-[1.45] font-bold tracking-[-0.01em] text-foreground">
-        <Link href={`/report/${card.publicId}`} className="hover:text-signal-ink">
+        <Link href={`/report/${card.publicId}`} className="focus-ring rounded-[3px] hover:text-signal-ink">
           {card.title}
         </Link>
       </h3>
@@ -53,7 +53,7 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
                       href={source.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold text-signal-ink hover:underline"
+                      className="focus-ring rounded-[3px] font-semibold text-signal-ink hover:underline"
                     >
                       {label} ↗
                     </a>
