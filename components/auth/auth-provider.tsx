@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 
 import { ApiError } from "@/lib/api-client";
 import { getMe, logout } from "@/lib/auth";
+import { onAuthExpired } from "@/lib/auth-events";
 import { getAccessToken } from "@/lib/token";
 import type { User } from "@/types/auth";
 
@@ -66,6 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshAuth();
   }, [refreshAuth]);
+
+  // 데이터 요청 중 AUTH_INVALID_TOKEN 발생 시(api-client 가 토큰 제거 후 이벤트 발생) 같은 탭 상태를
+  // 즉시 guest 로 동기화한다. getMe 재호출·네비게이션 없음 — 화면 분기(guest)로 자연히 전환된다(§5).
+  // idempotent: 이미 guest(+user 없음)면 상태를 바꾸지 않아 중복 이벤트·동시 401 에도 반복 렌더가 없다.
+  useEffect(() => {
+    return onAuthExpired(() => {
+      setState((prev) =>
+        prev.status === "guest" && prev.user === null ? prev : { status: "guest", user: null },
+      );
+    });
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({

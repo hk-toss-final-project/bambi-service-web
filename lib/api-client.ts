@@ -4,6 +4,7 @@ import {
   isAuthTokenError,
   isErrorCode,
 } from "@/constants/errors";
+import { emitAuthExpired } from "@/lib/auth-events";
 import { clearAccessToken, getAccessToken } from "@/lib/token";
 import type { ApiResponse } from "@/types/api";
 
@@ -99,9 +100,14 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   if (!payload.success) {
     const code = payload.error?.code ?? FALLBACK_ERROR_CODE;
     const message = payload.error?.message ?? "";
-    // 토큰 만료·무효: 저장 토큰만 제거한다. 리다이렉트는 상위(라우트 가드/레이아웃)의 책임 →
+    // 토큰 만료·무효(AUTH_INVALID_TOKEN): 저장 토큰을 제거하고 같은 탭에 인증 만료 이벤트를 발생시킨다
+    // → AuthProvider 가 상태를 guest 로 동기화한다. 리다이렉트는 상위(라우트 가드/레이아웃)의 책임 →
     // 여기서 네비게이션하지 않아 무한 리다이렉트·재요청을 방지한다(§4·§5).
-    if (isAuthTokenError(code)) clearAccessToken();
+    // 다른 코드(AUTH_INVALID_CREDENTIALS·FORBIDDEN 등)에는 발생시키지 않는다.
+    if (isAuthTokenError(code)) {
+      clearAccessToken();
+      emitAuthExpired();
+    }
     throw new ApiError(code, message, res.status);
   }
 
