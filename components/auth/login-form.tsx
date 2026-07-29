@@ -28,6 +28,10 @@ export function LoginForm() {
 
   const hasError = errorMessage !== null;
   const canSubmit = email.trim() !== "" && password !== "" && !submitting;
+  // 폼 레벨 오류(자격 증명 불일치 등)는 어느 필드가 틀렸는지 알 수 없다 → 개별 필드를 invalid 로 표시하지 않고
+  // 두 입력에 오류 문구를 describedby 로 연결만 한다(A-4). 필드 단위 검증 오류가 생기면 그때 aria-invalid 를 쓴다.
+  const errorId = "login-error";
+  const describedBy = hasError ? errorId : undefined;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,7 +72,7 @@ export function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={submitting}
-          aria-invalid={hasError || undefined}
+          aria-describedby={describedBy}
           className={FIELD_INPUT_CLASS}
         />
       </div>
@@ -97,7 +101,7 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={submitting}
-            aria-invalid={hasError || undefined}
+            aria-describedby={describedBy}
             className={FIELD_INPUT_CLASS}
           />
           {/* .eye */}
@@ -107,8 +111,8 @@ export function LoginForm() {
             disabled={submitting}
             aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
             aria-pressed={showPassword}
-            tabIndex={-1}
-            className="absolute top-1/2 right-[13px] inline-flex -translate-y-1/2 text-muted-foreground disabled:opacity-50"
+            // tabIndex={-1} 제거 — 키보드만 쓰는 사용자도 표시/숨기기에 도달할 수 있어야 한다(A-5).
+            className="focus-ring absolute top-1/2 right-[13px] inline-flex -translate-y-1/2 rounded-[6px] text-muted-foreground disabled:opacity-50"
           >
             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
           </button>
@@ -118,6 +122,7 @@ export function LoginForm() {
       {/* 에러 — 목업에 별도 스펙 없음. §4 인라인 에러 (code → 문구, 원문 비노출) */}
       {hasError && (
         <p
+          id={errorId}
           role="alert"
           aria-live="assertive"
           className="mb-3 rounded-[10px] border border-destructive/30 bg-destructive/10 px-3 py-2 text-left text-sm text-destructive"

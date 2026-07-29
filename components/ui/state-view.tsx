@@ -31,6 +31,7 @@ export function StateView({
   role,
   className,
   size = "compact",
+  headingLevel = "h2",
 }: {
   icon?: ReactNode;
   iconTone?: "neutral" | "brand";
@@ -41,8 +42,14 @@ export function StateView({
   className?: string;
   /** compact: 피드 컬럼 내부 안내(기본). page: 화면 전체를 대체하는 페이지 수준 카드(404·접근 제한). */
   size?: "compact" | "page";
+  /**
+   * 제목 heading 레벨. 기본 h2 — 이미 h1 이 있는 화면의 컬럼 내부 안내에 쓰이기 때문이다.
+   * 이 카드가 화면 본문을 통째로 대체해 페이지의 유일한 제목이 될 때만 h1 로 올린다(A-1).
+   */
+  headingLevel?: "h1" | "h2";
 }) {
   const isPage = size === "page";
+  const Heading = headingLevel;
   return (
     <div
       role={role}
@@ -64,14 +71,14 @@ export function StateView({
           {icon}
         </span>
       )}
-      <h2
+      <Heading
         className={cn(
           "text-balance font-bold text-foreground",
           isPage ? "text-[22px] tracking-[-0.01em]" : "text-[15px]",
         )}
       >
         {title}
-      </h2>
+      </Heading>
       {description != null && (
         <div
           className={cn(

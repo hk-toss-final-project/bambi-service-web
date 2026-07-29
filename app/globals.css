@@ -219,6 +219,16 @@
   }
 }
 
+/* 감속 모션 대응(A-8) — 전정 감각 민감 사용자를 위해 "끝없이 반복되는" 모션만 멈춘다.
+   전역으로 모든 transition/animation 을 none 으로 만들지 않는 이유: 색·포커스 전환 같은 짧은 피드백은
+   상태 변화를 알리는 유용한 신호이고, 이를 없애면 오히려 무슨 일이 일어났는지 알기 어려워진다.
+   회전 스피너(Orb)는 이미 각 호출부에서 motion-safe: 로 가드되어 여기 대상이 아니다. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    마크다운 뷰어 (.md-viewer) — 목업 product-components.css .md 1:1.
    카드 상세의 브리핑 본문(content_md 렌더 결과)에 적용.

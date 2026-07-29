@@ -102,7 +102,7 @@ export function PostCard({ post, guest = false }: { post: FeedPost; guest?: bool
           type="button"
           onClick={() => requireAuth(() => setSaved((v) => !v))}
           aria-pressed={showSaved}
-          className={`inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] ${
+          className={`focus-ring inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] ${
             showSaved
               ? "text-signal-ink"
               : "text-muted-foreground hover:bg-background hover:text-ink-mid"
@@ -123,7 +123,7 @@ export function PostCard({ post, guest = false }: { post: FeedPost; guest?: bool
               type="button"
               onClick={() => requireAuth(() => setLiked((v) => !v))}
               aria-pressed={liked}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] ${
+              className={`focus-ring inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] ${
                 liked
                   ? "text-signal-ink"
                   : "text-muted-foreground hover:bg-background hover:text-ink-mid"
@@ -139,7 +139,7 @@ export function PostCard({ post, guest = false }: { post: FeedPost; guest?: bool
             <button
               type="button"
               onClick={() => requireAuth(handleShare)}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] text-muted-foreground hover:bg-background hover:text-ink-mid"
+              className="focus-ring ml-auto inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] text-muted-foreground hover:bg-background hover:text-ink-mid"
             >
               ↗ 공유
             </button>
@@ -149,7 +149,7 @@ export function PostCard({ post, guest = false }: { post: FeedPost; guest?: bool
             <button
               type="button"
               onClick={() => requireAuth(handleShare)}
-              className="inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] text-muted-foreground hover:bg-background hover:text-ink-mid"
+              className="focus-ring inline-flex items-center gap-1.5 rounded-lg px-[11px] py-[9px] text-[12.5px] text-muted-foreground hover:bg-background hover:text-ink-mid"
             >
               ↗ 공유
             </button>

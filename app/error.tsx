@@ -27,9 +27,11 @@ export default function GlobalError({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <BrandHeader />
-      <div className="flex flex-1 items-center justify-center px-5 py-24">
+      {/* 이 안내가 화면 본문 전체를 대체하므로 main 랜드마크 + 페이지 h1 이다(A-1·A-3). */}
+      <main className="flex flex-1 items-center justify-center px-5 py-24">
         <StateView
           role="alert"
+          headingLevel="h1"
           className="w-[440px] max-w-full"
           icon={<IconAlert />}
           title="문제가 발생했어요"
@@ -39,7 +41,7 @@ export default function GlobalError({
             { label: "홈으로", href: "/", variant: "ghost" },
           ]}
         />
-      </div>
+      </main>
     </div>
   );
 }

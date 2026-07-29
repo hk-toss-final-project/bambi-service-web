@@ -161,15 +161,19 @@ function AvatarMenu() {
   const { user, logoutUser } = useAuth();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // 바깥 클릭·Esc 로 닫기
+  // 바깥 클릭·Esc 로 닫기. Esc 는 키보드 조작이므로 트리거로 포커스를 되돌린다(마우스 바깥 클릭은 그대로 둔다).
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
     }
     window.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
@@ -179,11 +183,19 @@ function AvatarMenu() {
     };
   }, [open]);
 
+  // 열릴 때 첫 메뉴 항목으로 포커스 이동(A-5) — 이게 없으면 키보드 사용자는 메뉴를 열고도
+  // 페이지 전체를 Tab 으로 훑어야 항목에 닿는다.
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+  }, [open]);
+
   const initial = user?.displayName?.trim()?.[0] ?? MOCK_NAV.avatarInitial;
 
   return (
     <div ref={wrapRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="내 계정"
@@ -196,7 +208,9 @@ function AvatarMenu() {
 
       {open && (
         <div
+          ref={menuRef}
           role="menu"
+          aria-label="내 계정"
           className="absolute right-0 top-[calc(100%+8px)] z-[80] w-[220px] rounded-xl border border-border bg-card p-1.5 shadow-[0_16px_40px_rgba(10,12,15,.2)]"
         >
           {/* 사용자 정보 */}

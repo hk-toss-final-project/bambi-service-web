@@ -88,12 +88,13 @@ function CardDetailView({ card }: { card: CardResponse }) {
             {/* 출처 — 실제 URL 외부 링크(mock 상세의 시각 전용 "원문 열기"와 달리 실제 이동). */}
             {vm.sources.length > 0 && (
               <section className="mb-4 rounded-2xl border border-border bg-card px-6 py-5">
-                <div className="mb-3.5 text-[15px] font-bold text-foreground">
+                {/* 섹션 제목은 heading 이어야 문서 아웃라인(h1 → h2)이 성립한다(A-2). 스타일은 그대로. */}
+                <h2 className="mb-3.5 text-[15px] font-bold text-foreground">
                   출처{" "}
                   <span className="text-xs font-medium text-muted-foreground">
                     {vm.sources.length}건
                   </span>
-                </div>
+                </h2>
                 <ul className="flex flex-col gap-2">
                   {vm.sources.map((source, i) => {
                     const label = source.title?.trim() || source.url;
@@ -174,9 +175,11 @@ function DetailAuthError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
-      <div className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
+      {/* 안내가 본문 전체를 대체하므로 main 랜드마크 + 페이지 h1 (A-1·A-3) */}
+      <main className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
         <StateView
           role="alert"
+          headingLevel="h1"
           className="w-[420px] max-w-full"
           iconTone="brand"
           icon={<Orb size={22} />}
@@ -187,7 +190,7 @@ function DetailAuthError({ onRetry }: { onRetry: () => void }) {
             { label: "홈으로", href: "/", variant: "ghost" },
           ]}
         />
-      </div>
+      </main>
     </div>
   );
 }
@@ -197,9 +200,10 @@ function DetailDataError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
-      <div className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
+      <main className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
         <StateView
           role="alert"
+          headingLevel="h1"
           className="w-[440px] max-w-full"
           icon={<IconAlert />}
           title="카드를 불러오지 못했어요"
@@ -209,7 +213,7 @@ function DetailDataError({ onRetry }: { onRetry: () => void }) {
             { label: "홈 피드로", href: "/", variant: "ghost" },
           ]}
         />
-      </div>
+      </main>
     </div>
   );
 }

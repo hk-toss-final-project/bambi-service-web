@@ -16,9 +16,14 @@ export function AuthShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen bg-card">
+    // main 은 실제 본문인 폼 칼럼에만 둔다(A-3) — 보조 브랜드 패널까지 main 에 넣으면
+    // "본문으로 건너뛰기"가 마케팅 영역부터 시작한다. aside 는 main 의 형제로 남긴다.
+    <div className="flex min-h-screen bg-card">
       {/* ── 브랜드 패널 (.auth-r) ── */}
-      <aside className="relative flex min-w-0 flex-1 flex-col overflow-hidden border-r border-border bg-[linear-gradient(192deg,var(--wash)_0%,var(--background)_58%)] px-14 pt-[34px] pb-10 max-[900px]:hidden">
+      <aside
+        aria-label="서비스 소개"
+        className="relative flex min-w-0 flex-1 flex-col overflow-hidden border-r border-border bg-[linear-gradient(192deg,var(--wash)_0%,var(--background)_58%)] px-14 pt-[34px] pb-10 max-[900px]:hidden"
+      >
         {/* .rtop / .rbrand */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -31,12 +36,13 @@ export function AuthShell({
 
         {/* .auth-rmid */}
         <div className="m-auto w-full max-w-[430px]">
-          {/* .rhead */}
-          <h2 className="mb-5 text-left text-[23px] leading-[1.5] font-bold tracking-[-0.015em] text-foreground">
+          {/* .rhead — 문서 구조상 섹션 제목이 아니라 마케팅 문구다. h2 로 두면 폼 칼럼의 페이지 h1 보다
+              DOM 상 먼저 나와 heading 순서가 뒤집힌다(A-2). 스타일은 그대로 두고 p 로 내린다. */}
+          <p className="mb-5 text-left text-[23px] leading-[1.5] font-bold tracking-[-0.015em] text-foreground">
             밤사이 쌓인 소식,
             <br />
             아침 5분이면 충분해요.
-          </h2>
+          </p>
 
           {/* .auth-preview */}
           <div className="rounded-2xl border border-border bg-card px-5 py-[18px] shadow-[0_10px_30px_rgba(20,22,25,.08)]">
@@ -69,8 +75,8 @@ export function AuthShell({
         </div>
       </aside>
 
-      {/* ── 폼 칼럼 (.auth-l) ── */}
-      <div className="relative flex min-w-0 flex-1 flex-col px-14 pt-[30px] pb-7">
+      {/* ── 폼 칼럼 (.auth-l) — 실제 본문 ── */}
+      <main className="relative flex min-w-0 flex-1 flex-col px-14 pt-[30px] pb-7">
         {back ?? (
           /* .auth-back(비노출) — 목업처럼 자리만 유지 */
           <div aria-hidden="true" className="invisible self-start px-2.5 py-[7px] text-[13.5px]">
@@ -89,8 +95,8 @@ export function AuthShell({
           <span>매일 아침, 나에게 중요한 것만.</span>
           <span>© 2026 AlphaCatcher</span>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 

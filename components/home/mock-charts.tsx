@@ -1,6 +1,10 @@
 /**
  * 피드 카드 mock 차트 — 목업 home-feed.html 의 인라인 SVG 그대로 (색만 토큰 var).
  * ★ 실제 API 교체 지점: 계약 확정 시 이미지 URL 렌더링으로 교체된다 (lib/mock/feed.ts 참조).
+ *
+ * 접근성(A-7): 내부 `<text>` 의 수치("−6bp"·"82.4" 등)는 실제 데이터가 아니라 목업 샘플이라
+ * 스크린리더에 맥락 없는 숫자로 읽히면 오해를 준다. 카드 본문 텍스트가 이미 내용을 전달하므로
+ * 장식으로 간주해 `aria-hidden` 처리한다. 실 데이터 이미지로 교체될 때 대체 텍스트 정책을 다시 정한다.
  */
 
 const FONT = "Pretendard Variable,Pretendard,Apple SD Gothic Neo,sans-serif";
@@ -9,7 +13,7 @@ const IMG_CLASS = "block h-full w-full";
 /** CARD B — US 10Y 야간 금리 차트 */
 export function Us10yChart() {
   return (
-    <svg className={IMG_CLASS} viewBox="0 0 596 280" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <svg className={IMG_CLASS} viewBox="0 0 596 280" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <rect width="596" height="280" style={{ fill: "var(--background)" }} />
       <g style={{ stroke: "var(--border)" }} strokeWidth={1}>
         <line x1="0" y1="93" x2="596" y2="93" />
@@ -34,7 +38,7 @@ export function Us10yChart() {
 /** CARD E — USD/KRW 트리거 라인 차트 */
 export function FxTriggerChart() {
   return (
-    <svg className={IMG_CLASS} viewBox="0 0 596 280" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <svg className={IMG_CLASS} viewBox="0 0 596 280" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
       <rect width="596" height="280" style={{ fill: "var(--background)" }} />
       <g style={{ stroke: "var(--border)" }} strokeWidth={1}>
         <line x1="0" y1="93" x2="596" y2="93" />
@@ -67,7 +71,7 @@ export function LlmGrid() {
   return (
     <>
       <span className="relative h-[146px] overflow-hidden bg-[var(--img)]">
-        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <rect width="300" height="146" style={{ fill: "var(--secondary)" }} />
           <g style={{ fill: "var(--primary)" }}>
             <rect x="34" y="78" width="24" height="48" />
@@ -82,7 +86,7 @@ export function LlmGrid() {
         </svg>
       </span>
       <span className="relative h-[146px] overflow-hidden bg-[var(--img)]">
-        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <rect width="300" height="146" style={{ fill: "var(--background)" }} />
           <g style={{ stroke: "var(--border)" }} strokeWidth={1}>
             <line x1="0" y1="49" x2="300" y2="49" />
@@ -96,7 +100,7 @@ export function LlmGrid() {
         </svg>
       </span>
       <span className="relative h-[146px] overflow-hidden bg-[var(--img)]">
-        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <rect width="300" height="146" style={{ fill: "var(--secondary)" }} />
           <g fontFamily={FONT} style={{ fill: "var(--muted-foreground)" }} fontSize={14}>
             <text x="26" y="52">MMLU</text>
@@ -109,14 +113,17 @@ export function LlmGrid() {
         </svg>
       </span>
       <span className="relative h-[146px] overflow-hidden bg-[var(--img)]">
-        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <svg className={IMG_CLASS} viewBox="0 0 300 146" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
           <rect width="300" height="146" style={{ fill: "var(--background)" }} />
           <rect x="40" y="44" width="150" height="12" rx="6" style={{ fill: "var(--input)" }} />
           <rect x="40" y="70" width="110" height="12" rx="6" style={{ fill: "var(--input)" }} />
           <rect x="40" y="96" width="130" height="12" rx="6" style={{ fill: "var(--border)" }} />
         </svg>
-        {/* .pgrid .gi .more */}
-        <span className="absolute inset-0 flex items-center justify-center bg-[rgba(20,22,25,.42)] text-lg font-semibold text-white [font-family:'Space_Grotesk',monospace]">
+        {/* .pgrid .gi .more — 남은 이미지 수를 알리는 시각 표시(목업 샘플). 위 SVG 와 함께 장식 처리. */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center bg-[rgba(20,22,25,.42)] text-lg font-semibold text-white [font-family:'Space_Grotesk',monospace]"
+        >
           +2
         </span>
       </span>

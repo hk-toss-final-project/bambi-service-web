@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { Orb } from "@/components/brand/orb";
@@ -67,6 +67,51 @@ function HomeView({ isMember }: { isMember: boolean }) {
         : undefined;
   const effectiveTab: HomeTab = isMember ? tab : "rec";
 
+  const tablistRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Tabs 패턴 키보드 이동(A-5) — ←/→ 로 이웃 탭, Home/End 로 양 끝, 끝에서는 순환한다.
+   * 자동 활성화 방식이라 이동과 동시에 탭이 선택되고 연결된 패널도 함께 바뀐다.
+   *
+   * 기준 인덱스는 **이벤트가 난 탭 요소**에서 센다(활성 탭 state 가 아니라).
+   * 렌더 시점의 state 로 계산하면 연속 입력·포커스와 선택이 어긋난 순간에 엉뚱한 탭으로 튄다.
+   * 탭 목록도 실제 DOM 에서 읽어 guest(1탭)·member(2탭) 구성이 배열과 어긋날 여지를 없앤다.
+   */
+  function handleTabKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") {
+      return; // Enter·Space 등은 버튼 기본 동작(onSelect)에 맡긴다
+    }
+    const list = tablistRef.current;
+    if (!list) return;
+
+    const tabs = Array.from(list.querySelectorAll<HTMLElement>('[role="tab"]'));
+    if (tabs.length === 0) return;
+
+    // 이벤트는 tab 버튼에서 tablist 로 버블링돼 온다. 내부 span 에서 나도 closest 로 버튼을 찾는다.
+    const focused = (e.target as HTMLElement).closest<HTMLElement>('[role="tab"]');
+    const from = focused
+      ? tabs.indexOf(focused)
+      : tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
+    if (from === -1) return;
+
+    const to =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? tabs.length - 1
+          : e.key === "ArrowRight"
+            ? (from + 1) % tabs.length
+            : (from - 1 + tabs.length) % tabs.length;
+
+    const nextTab = tabs[to];
+    const nextId = nextTab.dataset.tab as HomeTab | undefined;
+    if (!nextId) return;
+
+    e.preventDefault(); // 처리한 키에서만 — Home/End 의 페이지 스크롤 등 기본 동작을 막는다
+    setTab(nextId);
+    nextTab.focus(); // 상태 반영(aria-selected·tabIndex·패널)은 리렌더가, 실제 포커스는 여기서 옮긴다
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* nav — 풀블리드(배경·보더 전체 폭), 내부는 1440 정렬 */}
@@ -80,10 +125,15 @@ function HomeView({ isMember }: { isMember: boolean }) {
 
           {/* .feed */}
           <main className="min-w-0 max-w-[760px] flex-1">
+            {/* 화면 최상위 제목 — 목업에 시각적 제목이 없어 스크린리더 전용으로만 둔다(A-1, 디자인 무변경) */}
+            <h1 className="sr-only">홈</h1>
+
             {/* .tabs — member 는 2탭, guest 는 피드 단일 탭 */}
             <div
+              ref={tablistRef}
               role="tablist"
               aria-label="홈 피드 전환"
+              onKeyDown={handleTabKeyDown}
               className="sticky top-4 z-20 mb-4 flex overflow-hidden rounded-[14px] border border-border bg-card"
             >
               {isMember && (
@@ -205,7 +255,8 @@ function HomeAuthError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
-      <div className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
+      {/* 안내가 본문 전체를 대체하므로 main 랜드마크 + 페이지 h1 (A-1·A-3) */}
+      <main className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
         <div
           role="alert"
           className="w-[420px] max-w-full rounded-2xl border border-border bg-card px-6 py-[30px] text-center"
@@ -213,9 +264,9 @@ function HomeAuthError({ onRetry }: { onRetry: () => void }) {
           <div className="mx-auto mb-3.5 h-11 w-11">
             <Orb size={44} />
           </div>
-          <div className="text-lg font-bold tracking-[-0.01em] text-foreground">
+          <h1 className="text-lg font-bold tracking-[-0.01em] text-foreground">
             인증 상태를 확인하지 못했어요
-          </div>
+          </h1>
           <p className="mt-2 text-[13px] leading-[1.65] text-ink-mid">
             네트워크나 서버 상태를 확인한 뒤 다시 시도해 주세요.
           </p>
@@ -229,7 +280,7 @@ function HomeAuthError({ onRetry }: { onRetry: () => void }) {
             </button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -251,8 +302,12 @@ function TabButton({
       type="button"
       role="tab"
       id={`tab-${id}`}
+      // 화살표 이동이 이동한 탭의 식별자를 DOM 에서 바로 읽을 수 있게 한다(id 문자열 파싱 대신).
+      data-tab={id}
       aria-selected={active}
       aria-controls={`panel-${id}`}
+      // roving tabindex — 활성 탭만 Tab 순회에 들어가고, 나머지는 화살표키로 이동한다(A-5).
+      tabIndex={active ? 0 : -1}
       onClick={onSelect}
       // 포커스 링: 공통 .focus-ring(outline 2px + offset 2px)은 tablist 의 overflow-hidden 에 바깥이 잘려
       // 두 탭 사이 세로선처럼 보인다. 공통 클래스는 그대로 쓰고(색·굵기·forced-colors 대응 유지) 이 홈 탭에서만

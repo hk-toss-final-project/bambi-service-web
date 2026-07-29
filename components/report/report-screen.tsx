@@ -201,12 +201,13 @@ function ReportView({ report, isMember }: { report: ReportDetail; isMember: bool
 
             {/* 출처 (.block) — 공개 정보 공통 */}
             <section className="mb-4 rounded-2xl border border-border bg-card px-6 py-5">
-              <div className="mb-3.5 flex items-center gap-[9px] text-[15px] font-bold text-foreground">
+              {/* 섹션 제목은 heading 이어야 문서 아웃라인(h1 → h2)이 성립한다(A-2). 스타일은 그대로. */}
+              <h2 className="mb-3.5 flex items-center gap-[9px] text-[15px] font-bold text-foreground">
                 출처{" "}
                 <span className="text-xs font-medium text-muted-foreground">
                   {MOCK_SOURCES.count}
                 </span>
-              </div>
+              </h2>
               {MOCK_SOURCES.rows.map((row) => (
                 <div
                   key={row.no}
@@ -215,12 +216,17 @@ function ReportView({ report, isMember }: { report: ReportDetail; isMember: bool
                   <span className="w-[22px] shrink-0 text-[11.5px] text-muted-foreground">
                     {row.no}
                   </span>
-                  {/* 신뢰도 dot */}
+                  {/* 신뢰도 — dot 은 시각 보조일 뿐이고, 색만으로 구분되지 않도록 텍스트를 함께 둔다(A-9).
+                      색각 이상 사용자와 스크린리더 모두 같은 정보를 얻는다. */}
                   <span
+                    aria-hidden="true"
                     className={`h-2 w-2 shrink-0 rounded-full ${
                       row.trust === "mid" ? "bg-[var(--mid)]" : "bg-[var(--ok-dot)]"
                     }`}
                   />
+                  <span className="shrink-0 text-[11.5px] whitespace-nowrap text-muted-foreground">
+                    신뢰도 {row.trust === "mid" ? "보통" : "높음"}
+                  </span>
                   <div className="flex-1">
                     <div className="text-[13.5px] font-semibold text-foreground">{row.name}</div>
                     <div className="mt-px text-[11.5px] text-muted-foreground">{row.pub}</div>
@@ -241,12 +247,12 @@ function ReportView({ report, isMember }: { report: ReportDetail; isMember: bool
 
             {/* 댓글 · 메모 (.block) — private=메모 / public=공개 댓글 (동일 기능, 공개 범위로 명칭만 다름) */}
             <section className="mb-4 rounded-2xl border border-border bg-card px-6 py-5">
-              <div className="mb-3.5 flex items-center gap-[9px] text-[15px] font-bold text-foreground">
+              <h2 className="mb-3.5 flex items-center gap-[9px] text-[15px] font-bold text-foreground">
                 {report.comments.blockTitle}{" "}
                 <span className="text-xs font-medium text-muted-foreground">
                   {report.comments.blockSub}
                 </span>
-              </div>
+              </h2>
               {report.comments.items.map((c) => (
                 <div key={c.name + c.time} className="flex items-start gap-2.5 border-b border-border py-3">
                   <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border border-input bg-background text-[9.5px] font-bold text-muted-foreground">
@@ -472,9 +478,11 @@ function ReportDataError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
-      <div className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
+      {/* 안내가 본문 전체를 대체하므로 main 랜드마크 + 페이지 h1 (A-1·A-3) */}
+      <main className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
         <StateView
           role="alert"
+          headingLevel="h1"
           className="w-[440px] max-w-full"
           icon={<IconAlert />}
           title="브리핑을 불러오지 못했어요"
@@ -484,7 +492,7 @@ function ReportDataError({ onRetry }: { onRetry: () => void }) {
             { label: "홈 피드로", href: "/", variant: "ghost" },
           ]}
         />
-      </div>
+      </main>
     </div>
   );
 }
@@ -497,9 +505,10 @@ function ReportPreparing() {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
-      <div className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
+      <main className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
         <StateView
           role="status"
+          headingLevel="h1"
           className="w-[460px] max-w-full"
           iconTone="brand"
           icon={<Orb size={22} className="motion-safe:animate-spin [animation-duration:3s]" />}
@@ -516,7 +525,7 @@ function ReportPreparing() {
             </div>
           }
         />
-      </div>
+      </main>
     </div>
   );
 }

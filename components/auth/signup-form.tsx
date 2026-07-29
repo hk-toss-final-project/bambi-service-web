@@ -187,8 +187,8 @@ export function SignupForm() {
             disabled={submitting}
             aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
             aria-pressed={showPassword}
-            tabIndex={-1}
-            className="absolute top-1/2 right-[13px] inline-flex -translate-y-1/2 text-muted-foreground disabled:opacity-50"
+            // tabIndex={-1} 제거 — 키보드만 쓰는 사용자도 표시/숨기기에 도달할 수 있어야 한다(A-5).
+            className="focus-ring absolute top-1/2 right-[13px] inline-flex -translate-y-1/2 rounded-[6px] text-muted-foreground disabled:opacity-50"
           >
             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
           </button>

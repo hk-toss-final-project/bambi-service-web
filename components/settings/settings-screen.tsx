@@ -174,11 +174,11 @@ function ThemeModeSegment() {
   );
 }
 
-/** .set-sec — 섹션 카드(제목 st2 + 행들). */
+/** .set-sec — 섹션 카드(제목 st2 + 행들). 제목은 heading 이어야 아웃라인(h1 → h2)이 성립한다(A-2). */
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mb-3.5 rounded-2xl border border-border bg-card px-[22px] py-1.5">
-      <div className="pt-4 pb-1 text-[14.5px] font-bold text-foreground">{title}</div>
+      <h2 className="pt-4 pb-1 text-[14.5px] font-bold text-foreground">{title}</h2>
       {children}
     </section>
   );

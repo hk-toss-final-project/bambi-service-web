@@ -16,7 +16,13 @@ export function FailedReports({ reports }: { reports: MyReport[] }) {
   if (reports.length === 0) return null;
 
   return (
-    <section aria-label="생성에 실패한 보고서" className="mb-4 flex flex-col gap-2.5">
+    // aria-live: refetch 로 실패가 새로 등장했을 때 스크린리더가 알아채도록 한다(A-10).
+    // PreparingReports 와 같은 polite 수준 — 사용자의 현재 조작을 끊지 않는다.
+    <section
+      aria-label="생성에 실패한 보고서"
+      aria-live="polite"
+      className="mb-4 flex flex-col gap-2.5"
+    >
       {reports.map((report) => (
         <ErrorSlot key={report.id} kind={report.kind} />
       ))}
