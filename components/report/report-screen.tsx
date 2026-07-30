@@ -406,7 +406,8 @@ function ReportAuthError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
-      <div className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
+      {/* 안내가 본문 전체를 대체하므로 main 랜드마크 + 페이지 h1 (A-1·A-3) */}
+      <main className="mx-auto flex max-w-[1440px] items-center justify-center px-5 py-24">
         <div
           role="alert"
           className="w-[420px] max-w-full rounded-2xl border border-border bg-card px-6 py-[30px] text-center"
@@ -414,9 +415,9 @@ function ReportAuthError({ onRetry }: { onRetry: () => void }) {
           <div className="mx-auto mb-3.5 h-11 w-11">
             <Orb size={44} />
           </div>
-          <div className="text-lg font-bold tracking-[-0.01em] text-foreground">
+          <h1 className="text-lg font-bold tracking-[-0.01em] text-foreground">
             인증 상태를 확인하지 못했어요
-          </div>
+          </h1>
           <p className="mt-2 text-[13px] leading-[1.65] text-ink-mid">
             네트워크나 서버 상태를 확인한 뒤 다시 시도해 주세요.
           </p>
@@ -436,7 +437,7 @@ function ReportAuthError({ onRetry }: { onRetry: () => void }) {
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
