@@ -1,8 +1,17 @@
 <!DOCTYPE html>
+<!-- ⚠ 참고용 목업 — 독립 「지식창고」 화면은 폐기됐다(2026-07-27, CLAUDE.md §2).
+     핵심 역할(개인 보고서 아카이브·검색)은 「내 보고서 전체 보기」(/reports)가 흡수했다.
+     2026-07-30 목업 우선(mock-first) 결정: /reports 는 이 목업의 구조를 기준으로 구현한다 —
+     요약(.arch)·검색+필터(.kb-srow/.kbf-panel: 태그·기간·정렬·보기 아이콘)·날짜 그룹(.kb-group)·
+     kb-card·우측 rail(쌓인 기록·다시 찾은 보고서). API 미제공 값(태그·유형·공개·통계·조회 이력)은
+     mock 계약(lib/mock/report-archive.ts)으로 구현되며 백엔드 계약 확정 시 교체된다.
+     차이점: 「묶기」 행은 제품에서 제외(날짜별 고정, 카테고리별은 category API 없음),
+     「내보내기(.md)」는 상세 contentMd API 부재로 제외(자리는 결과 건수·검색 범위 안내로 대체),
+     독립 메뉴/보관함 명칭/SNS 수치는 현재 제품 정책에 없음. -->
 <html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AlphaCatcher — 지식창고</title>
+<title>AlphaCatcher — 지식창고 (참고용 — /reports 로 흡수)</title>
 <link rel="stylesheet" href="../shared/tokens.css">
 <link rel="stylesheet" href="../shared/base.css">
 <link rel="stylesheet" href="../shared/product-components.css">
@@ -63,6 +72,8 @@
             <div class="kbf-row"><span class="fl">묶기</span><span class="kseg"><span class="ks on" data-kb-by="date">날짜별</span><span class="ks" data-kb-by="cat">카테고리별</span></span></div>
             <div class="kbf-row"><span class="fl">보기</span><span class="kseg"><span class="ks on" data-kb-view="list" title="리스트 보기"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><line x1="1.5" y1="3" x2="12.5" y2="3"/><line x1="1.5" y1="7" x2="12.5" y2="7"/><line x1="1.5" y1="11" x2="12.5" y2="11"/></svg></span><span class="ks" data-kb-view="grid" title="그리드 보기"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.5" y="1.5" width="4.6" height="4.6" rx="1"/><rect x="7.9" y="1.5" width="4.6" height="4.6" rx="1"/><rect x="1.5" y="7.9" width="4.6" height="4.6" rx="1"/><rect x="7.9" y="7.9" width="4.6" height="4.6" rx="1"/></svg></span></span></div>
             <div class="kbf-div"></div>
+            <!-- ⚠ 미구현 — Card API 에 contentMd(원문 MD) 필드가 없어 아래 내보내기 행은 실제 제품 범위가 아님.
+                 실제 /reports 구현은 이 자리에 결과 건수·검색 범위 안내를 배치한다(2026-07-30). -->
             <div class="kbf-row" style="margin-bottom:0;"><span class="fl">내보내기</span><span class="btn sm" title="마크다운 원문 복사">전체 내보내기 (.md)</span><span class="kb-more" style="cursor:default;color:var(--ink-dim);font-weight:500;">보고서 원문(.md)을 그대로 내려받아요</span></div>
           </div>
 

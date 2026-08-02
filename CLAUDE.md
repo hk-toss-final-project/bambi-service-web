@@ -66,6 +66,39 @@
 - ⚠️ **다크 모드가 이때 처음 실제로 켜졌다.** 그전까지 `.dark` 를 토글하는 코드가 없어 앱은 사실상 라이트 전용이었다.
   기본값이 `system` 이므로 **OS 가 다크인 사용자는 전 화면이 다크로 바뀐다.** 새 화면을 만들 때 다크 대비를 함께 확인할 것.
 
+### ⚡ 2026-07-30 범위 변경 — 내 보고서 전체 보기(/reports, 지식창고 흡수)
+
+- **독립 `지식창고` 화면·메뉴는 계속 폐기 상태다** (07-27 결정 유지). 그 핵심 역할(개인 보고서
+  아카이브·검색)은 **홈 [내 보고서] → `전체 보기` → `/reports`(내 보고서 전체 보기)** 가 흡수한다.
+  07-27 의 "검색은 글로벌 검색바" 문구는 이 결정으로 대체 — 개인 보고서 검색은 `/reports` 화면 검색이 담당한다.
+- 진입: 홈 [내 보고서] 패널 상단 헤더 행(READY 목록이 있을 때만 노출 — 완전 Empty 는 온보딩 카드가
+  CTA 를 제공하므로 겹치지 않음). 좌측 내비 메뉴는 추가하지 않는다(`홈 / 관심사 · LLM Wiki / 설정` 유지).
+- **구현 단계 = 목업 우선(mock-first, 2026-07-30 기준 변경)**: 화면 구조·상호작용은 `library.html` 을
+  기준으로 완성하고, API 에 없는 데이터는 **mock 계약으로 분리**해 구현한다(실 응답 위장 금지).
+  - 실 API 연결(현재): title·summary·whyForYou·sources·createdAt(기간/정렬/날짜 그룹/시각/월별 집계)·
+    publicId(상세 이동) — 전부 기존 `GET /api/feed`(`fetchMemberFeed`·`CardResponse` 재사용).
+  - mock 전용(`lib/mock/report-archive.ts` + `lib/adapters/report-archive-mock.ts` seam):
+    태그 필터·유형/공개 배지·♡/댓글/조회 통계·「다시 찾은 보고서」(lastViewedAt)·데모 항목.
+  - 모드: `NEXT_PUBLIC_REPORT_ARCHIVE_MOCK` — **미설정 = mock(디자인 검증, 이 단계 기본)** ·
+    `"false"` = 실 API 모드(mock UI 자동 숨김, 화면 안 깨짐). ⚠ main 머지 전 기본값 반전 필요.
+- 패널 확정: 태그(mock·단일) · 기간(전체/최근 7일/최근 30일) · 정렬(최신/오래된순) ·
+  보기(**아이콘** 목록/그리드). **묶기 옵션 없음 — 날짜별 고정.** 우측 rail 복원(쌓인 기록 =
+  실측 createdAt 월별 집계 / 다시 찾은 보고서 = mock 전용). **MD 내보내기 제외**(contentMd 없음),
+  그 자리는 결과 건수·검색 범위 안내.
+- **실측 근거 (bambi-service-api, 2026-07-30)**: `GET /api/feed` 는 본인 카드 **전량**을 최신순 반환
+  (FeedService "P0 피드는 '내 카드 전부'와 동치" · LIMIT/Pageable 없음) → "전체 보기" 성립.
+  서버 페이지네이션·검색 API 없음 → 클라이언트 검색. `GET /reports/mine` 계열 없음.
+- **백엔드 요청 목록(실 연결 시 mock 교체 대상)**: `tags: string[]` · `category` · `reportType
+  (MORNING_BRIEFING|ON_DEMAND)` · `visibility(PRIVATE|PUBLIC)` · `likeCount`·`commentCount`·`viewCount` ·
+  사용자별 `lastViewedAt`/`userViewCount`(또는 `GET /api/reports/mine/recently-viewed?limit=3`) ·
+  대량 대비 `GET /api/reports/mine`(검색·필터·정렬·페이지네이션) · 페이지네이션 시 월별 건수 집계 API ·
+  (후순위) 상세 `contentMd`.
+- ⚠ **관심 자료 저장 의미(계약 확인, 수정 안 함)**: `POST /api/bookmarks` 는 서버가 한 트랜잭션에서
+  **카드까지 동기 생성**한다("P0 즉시 카드 1장", BookmarkService 주석 실측). "저장하기 = 자료만 저장,
+  보고서 생성 없음" 정책과 어긋나는 **백엔드 side effect** — 프론트 중복 호출 아님. 분리하려면
+  `POST /api/materials`(저장만) + `POST /api/reports/on-demand`(온디맨드 분석) 계약 필요.
+- `북마크`(Week 3)는 남의 공개 보고서 스크랩으로 **내 보고서와 별개** — 이 화면과 섞지 않는다.
+
 ### ⚡ 2026-07-30 범위 변경 — 관심사 온보딩 구현 승인
 
 - **`onboarding.html` = P1 「구현하지 않는다」 목록에서 제외.** `/onboarding` 으로 구현한다.

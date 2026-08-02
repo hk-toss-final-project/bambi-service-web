@@ -1,0 +1,228 @@
+import type { CardResponse } from "@/types/feed";
+import type { ReportArchiveMockMeta } from "@/types/report-archive";
+
+/**
+ * 내 보고서 전체 보기(/reports) — **mock 전용 데이터** (목업 library.html 우선 구현 단계).
+ *
+ * 여기 값은 전부 API 미제공 필드다(태그·유형·공개·통계·조회 이력 + 데모 항목).
+ * 실제 GET /api/feed 응답(CardResponse)과 절대 섞어 정의하지 않으며, 병합은
+ * lib/adapters/report-archive-mock.ts 한 곳에서만 한다. 실 API 확정 시 이 파일을 삭제하고
+ * 서버 필드로 교체한다(백엔드 요청 목록은 CLAUDE.md §/reports 참조).
+ *
+ * 모드 결정: NEXT_PUBLIC_REPORT_ARCHIVE_MOCK
+ * - "false" → 실 API 모드(실측 필드만 렌더, mock UI 자동 숨김)
+ * - 미설정·그 외 → **mock 모드(기본)** — 이 브랜치는 목업 완성 우선 단계라 기본을 mock 으로 둔다.
+ *   ⚠ main 머지·배포 전에 기본값을 뒤집거나(미설정=실 API) 플래그를 제거해야 한다.
+ */
+export const REPORT_ARCHIVE_MOCK_ENABLED = process.env.NEXT_PUBLIC_REPORT_ARCHIVE_MOCK !== "false";
+
+/** 태그 필터 선택지(목업 kbf-row 태그 행). 단일 선택, "전체"는 화면에서 "all" 로 다룬다. */
+export const MOCK_ARCHIVE_TAGS = ["#환율", "#AI", "#반도체", "#쇼핑"] as const;
+
+/** mock 유형 배지 표시명 — 검색 대상에도 포함된다(§검색 범위 문구와 일치 유지). */
+export const REPORT_TYPE_LABEL: Record<ReportArchiveMockMeta["reportType"], string> = {
+  MORNING_BRIEFING: "아침 브리핑",
+  ON_DEMAND: "온디맨드",
+};
+
+/**
+ * 실 카드에 입힐 mock 메타 풀 — 실 publicId 를 미리 알 수 없으므로 디자인 모드에서는
+ * 인덱스 순환으로 배정한다(adapters/report-archive-mock.ts). 통계는 화면 검증용 소량 값.
+ */
+export const MOCK_ARCHIVE_META_POOL: ReportArchiveMockMeta[] = [
+  {
+    tags: ["#환율"],
+    category: "시장 · 경제",
+    reportType: "MORNING_BRIEFING",
+    visibility: "PRIVATE",
+    viewCount: 3,
+    likeCount: 0,
+    commentCount: 0,
+    lastViewedAt: null,
+  },
+  {
+    tags: ["#쇼핑"],
+    category: "라이프",
+    reportType: "ON_DEMAND",
+    visibility: "PRIVATE",
+    viewCount: 1,
+    likeCount: 0,
+    commentCount: 0,
+    lastViewedAt: null,
+  },
+  {
+    tags: ["#AI"],
+    category: "AI · 테크",
+    reportType: "MORNING_BRIEFING",
+    visibility: "PUBLIC",
+    viewCount: 12,
+    likeCount: 4,
+    commentCount: 1,
+    lastViewedAt: null,
+  },
+];
+
+/** 데모 항목 1건 = 실 DTO 모양(CardResponse) + mock 메타 — 화면 조립 전까지 출처를 분리 보관. */
+export type ArchiveDemoItem = {
+  card: CardResponse;
+  meta: ReportArchiveMockMeta;
+};
+
+/** 데모 날짜 헬퍼 — 오늘 기준 상대 날짜(ISO). 데모 데이터는 표시 검증용이라 로드 시점 기준이면 충분하다. */
+function daysAgoAt(days: number, hour: number, minute: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+}
+
+/**
+ * 데모 아카이브 항목 — 목업 library.html 의 kb-card 내용 기반.
+ * publicId 는 **기존 mock 상세 REPORT_REGISTRY(lib/mock/report.ts) 의 id** 를 재사용해
+ * 카드 클릭 → /report/{id} 상세 이동이 mock 모드에서도 끝까지 동작한다.
+ * (오늘 2 · 어제 1 · 이틀 전 1 · 지난달 1 · 지지난달 1 → 날짜 그룹·기간 필터·월별 rail 검증용)
+ */
+export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
+  {
+    card: {
+      publicId: "post-fx-trigger",
+      title: "원/달러 환율, 밤사이 0.8% 하락 — 설정한 트리거 조건 충족",
+      summary: "미 CPI 발표를 앞두고 달러가 약세로 전환, 환전 예정 시점과 관련해 확인할 만한 변동이 감지됐습니다.",
+      whyForYou: "관심사 ‘원/달러 환율’ 트리거 충족",
+      sources: [
+        { title: "한국은행 — 외환시장 동향 공시", url: "https://example.com/bok-fx" },
+        { title: "달러 약세 전환 보도", url: "https://example.com/fx-news" },
+        { title: "야간 거래 반응 스레드", url: "https://example.com/fx-thread" },
+      ],
+      createdAt: daysAgoAt(0, 7, 0),
+    },
+    meta: {
+      tags: ["#환율"],
+      category: "시장 · 경제",
+      reportType: "MORNING_BRIEFING",
+      visibility: "PRIVATE",
+      viewCount: 3,
+      likeCount: 0,
+      commentCount: 0,
+      lastViewedAt: daysAgoAt(0, 9, 40),
+    },
+  },
+  {
+    card: {
+      publicId: "post-us10y",
+      title: "RTX 50 시리즈 국내 출시가 정리 — 관심 GPU 가격 추적 시작",
+      summary: "엔비디아 신형 GPU 국내 가격이 공개됐습니다. 목표가 대비 현재 위치를 정리했어요.",
+      whyForYou: "관심사 ‘노트북·전자기기 할인’ 관련 가격 변동",
+      sources: [
+        { title: "국내 출시가 공지", url: "https://example.com/rtx-price" },
+        { title: "커뮤니티 시세 정리", url: "https://example.com/rtx-thread" },
+      ],
+      createdAt: daysAgoAt(0, 14, 12),
+    },
+    meta: {
+      tags: ["#쇼핑"],
+      category: "라이프",
+      reportType: "ON_DEMAND",
+      visibility: "PRIVATE",
+      viewCount: 1,
+      likeCount: 0,
+      commentCount: 0,
+      lastViewedAt: null,
+    },
+  },
+  {
+    card: {
+      publicId: "post-llm-release",
+      title: "오픈소스 LLM 릴리즈 2건 — 벤치마크 갱신, 로컬 구동 요건 완화",
+      summary: "새 모델 2종이 공개됐습니다. 사용 중인 스택 기준으로 적용 가능성을 정리했어요.",
+      whyForYou: "관심사 ‘오픈소스 LLM’ 신규 릴리즈",
+      sources: [
+        { title: "릴리즈 노트", url: "https://example.com/llm-release" },
+        { title: "벤치마크 비교", url: "https://example.com/llm-bench" },
+        { title: "로컬 구동 가이드", url: "https://example.com/llm-local" },
+        { title: "커뮤니티 반응", url: "https://example.com/llm-thread" },
+      ],
+      createdAt: daysAgoAt(1, 7, 0),
+    },
+    meta: {
+      tags: ["#AI"],
+      category: "AI · 테크",
+      reportType: "MORNING_BRIEFING",
+      visibility: "PUBLIC",
+      viewCount: 54,
+      likeCount: 12,
+      commentCount: 2,
+      lastViewedAt: daysAgoAt(1, 21, 15),
+    },
+  },
+  {
+    card: {
+      publicId: "post-earnings",
+      title: "유로 강세 지속 — 분할 환전 2차 실행 시점 점검",
+      summary: "달러 인덱스 하락이 이어지며 유로가 강세입니다. 설정하신 분할 환전 기준으로 2차 시점을 점검했어요.",
+      whyForYou: "관심사 ‘원/달러 환율’ 분할 환전 계획",
+      sources: [
+        { title: "환율 동향 리포트", url: "https://example.com/eur-report" },
+        { title: "달러 인덱스 추이", url: "https://example.com/dxy" },
+      ],
+      createdAt: daysAgoAt(2, 7, 0),
+    },
+    meta: {
+      tags: ["#환율"],
+      category: "시장 · 경제",
+      reportType: "MORNING_BRIEFING",
+      visibility: "PRIVATE",
+      viewCount: 2,
+      likeCount: 0,
+      commentCount: 0,
+      lastViewedAt: daysAgoAt(0, 8, 5),
+    },
+  },
+  {
+    card: {
+      publicId: "post-fx-setup",
+      title: "반도체 수출 규제 변화 — 보유 종목 영향 점검",
+      summary: "규제 발표 이후 관련 종목 흐름과 증권가 해석을 모았습니다. 보유 종목 기준 영향은 제한적.",
+      whyForYou: "관심사 ‘반도체’ 정책 변화",
+      sources: [
+        { title: "규제 발표 원문", url: "https://example.com/semi-policy" },
+        { title: "증권가 해석 모음", url: "https://example.com/semi-analysis" },
+      ],
+      createdAt: daysAgoAt(34, 7, 0),
+    },
+    meta: {
+      tags: ["#반도체"],
+      category: "주식 · 투자",
+      reportType: "MORNING_BRIEFING",
+      visibility: "PRIVATE",
+      viewCount: 5,
+      likeCount: 0,
+      commentCount: 0,
+      lastViewedAt: null,
+    },
+  },
+  {
+    card: {
+      publicId: "today",
+      title: "AI 코딩 도구 요금 개편 — 사용 중인 플랜 영향 비교",
+      summary: "주요 AI 코딩 도구 2곳이 요금제를 바꿨습니다. 현재 플랜 기준 유지/이동 시나리오를 비교했어요.",
+      whyForYou: "관심사 ‘AI 서비스 동향’ 요금 변경",
+      sources: [
+        { title: "요금 개편 공지", url: "https://example.com/ai-pricing" },
+        { title: "플랜 비교 표", url: "https://example.com/ai-plans" },
+        { title: "사용자 반응", url: "https://example.com/ai-thread" },
+      ],
+      createdAt: daysAgoAt(65, 7, 0),
+    },
+    meta: {
+      tags: ["#AI"],
+      category: "AI · 테크",
+      reportType: "MORNING_BRIEFING",
+      visibility: "PRIVATE",
+      viewCount: 7,
+      likeCount: 0,
+      commentCount: 0,
+      lastViewedAt: daysAgoAt(3, 12, 30),
+    },
+  },
+];

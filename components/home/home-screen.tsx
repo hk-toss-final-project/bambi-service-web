@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { Orb } from "@/components/brand/orb";
@@ -99,6 +100,20 @@ function HomeView({ isMember }: { isMember: boolean }) {
             {/* [내 보고서] — 개인 데이터(GET /api/feed)라 member 에서만 렌더. tab 순서(내 보고서→피드)와 DOM 순서 일치. */}
             {isMember && (
               <div role="tabpanel" id="panel-mine" aria-labelledby="tab-mine" hidden={effectiveTab !== "mine"}>
+                {/* 전체 보기(/reports) 진입 헤더 — READY 목록이 있을 때만 노출한다.
+                    완전 Empty 는 온보딩 카드(EmptyMyReports)가 CTA 를 이미 제공하므로 빈 아카이브로
+                    보내는 링크를 겹치지 않고, loading 은 스켈레톤이 콘텐츠 전체를 대체해 시프트가 없다. */}
+                {memberFeed.status === "success" && (
+                  <div className="mb-3 flex items-baseline justify-between px-0.5">
+                    <span className="text-[13px] font-bold text-ink-mid">내 보고서</span>
+                    <Link
+                      href="/reports"
+                      className="focus-ring rounded-[6px] text-[12.5px] font-semibold text-signal-ink hover:underline"
+                    >
+                      전체 보기 →
+                    </Link>
+                  </div>
+                )}
                 {/* 내 보고서 = PREPARING(처리중) → ERROR(생성 실패) → READY(완료 카드) 순. 각 섹션은 해당 상태가 있을 때만 렌더. */}
                 <PreparingReports reports={preparing} />
                 <FailedReports reports={failed} />
