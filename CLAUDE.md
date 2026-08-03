@@ -51,7 +51,19 @@
 
 - **P0 승격**: `home-my-reports.html`(홈 [내 보고서] — PR #16으로 기본 탭이 됨) · `wiki.html`(관심사 · LLM Wiki — 상단 AI 관심사 + 하단 내 저장 자료 결합 화면으로 Week2 구현)
 - **화면 폐기**: `library.html`(지식창고) — 홈 [내 보고서]와 데이터가 동일. 필터는 홈 탭 상단, 검색은 글로벌 검색바, 관심사별 모아보기는 관심사 화면으로 흡수. 목업 파일은 레이아웃 참고용으로만 남긴다.
-- **Week3 대기**: `saved.html`(보관함 → **"북마크"** 개명 = 남의 공개 보고서 스크랩) · `profile-*.html` — 공개 전환 API 이후. 그 전까지 내비에서 숨김.
+- **Week3 대기**: `saved.html`(보관함 → **"북마크"** 개명 = 남의 공개 보고서 스크랩) · `profile-*.html` — 공개 전환 API 이후. 그 전까지 내비에서 숨김. → **🔄 2026-07-31 해제(아래 범위 변경 참조).**
+
+### ⚡ 2026-07-31 범위 변경 — 메뉴 전면 연결 (우석 결정)
+
+- **북마크·프로필 P0 승격, 내비 5개 전면 노출**(홈·북마크·관심사 Wiki·프로필·설정). 백엔드 API가 이날 전부 배포됨:
+  스크랩 3종(`GET /api/scraps` · `POST/DELETE /api/cards/{id}/scrap`, #26) · 공개 프로필 확장(bio·joinedAt) ·
+  작성자 공개 카드(`GET /api/users/{id}/cards`) · 프로필 편집(`PUT /api/users/me`)(#24) · 리포트 본문(`GET /api/reports/{id}`, #25).
+- **화면**: `/scraps`(saved.html 기준, member 전용 4분기) · `/users/[publicId]`(profile-user.html, **게스트 열람 허용** —
+  공개 데이터, 팔로우 클릭만 게이트) · `/profile`(profile-self.html, 내비 정적 진입점 → 인증 사용자 publicId 로 재사용).
+- **만들지 않은 것(API 없음 — 동작하지 않는 UI 금지 원칙)**: 사진 업로드 · 주간 활동 통계 · 비슷한 사용자 추천 ·
+  프로필 "보관 N" 스탯 · **타인 카드 상세 진입**(공개 카드 단건 API 없음 — `GET /api/cards/{id}`는 내 것만.
+  스크랩·타인 프로필의 "보고서 열기"는 이 API 협의 후. 후속: 영현) · 좋아요 토글(프로필 리스트에선 카운트 표기만).
+- `/api/auth/me` 가 이제 로그인과 같은 `UserSummary`(publicId·username·bio 포함)를 반환 — `types/auth.ts` User 확장(optional).
 - **UI 노출 금지 용어**: "트리거" · "조회수" — 백엔드에 없는 개념(관심사·score만 존재).
 - **제품 모델**: 저장 ≠ 보고서 생성. 저장은 AI 요약·분류까지, 보고서는 정기 브리핑/온디맨드 생성으로만.
 

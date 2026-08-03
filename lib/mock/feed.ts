@@ -44,13 +44,16 @@ export const MOCK_NAV = {
 };
 
 /**
- * 정보구조 확정(07-27, 루트 CLAUDE.md §정보구조): 지식창고 삭제(홈 [내 보고서]와 동일 데이터),
- * 북마크(구 보관함=스크랩)·프로필은 SNS 공개 전환 API가 생기는 Week3에 다시 노출한다.
+ * 정보구조 확정(07-27, 루트 CLAUDE.md §정보구조): 지식창고 삭제(홈 [내 보고서]와 동일 데이터).
+ * 북마크(구 보관함=스크랩)·프로필은 07-31 백엔드(스크랩·프로필 API) 배포와 함께 노출됐다(§2).
  */
 export const MOCK_MENU: { icon: string; label: string; count?: string; href?: string }[] = [
   { icon: "⌂", label: "홈", href: "/" },
+  // 07-31 메뉴 전면 연결(우석 결정): 북마크(스크랩)·프로필 노출. 백엔드 API 배포 완료(#24·#26).
+  { icon: "⚑", label: "북마크", href: "/scraps" },
   // count 는 붙이지 않는다 — 실데이터가 없어 목업 숫자가 화면 실제 개수와 어긋난다(/wiki 우측 레일은 실제 개수를 센다).
   { icon: "▤", label: "관심사 · LLM Wiki", href: "/wiki" },
+  { icon: "◑", label: "프로필", href: "/profile" },
 ];
 
 export const MOCK_MENU_BOTTOM: { icon: string; label: string; count?: string; href?: string }[] = [

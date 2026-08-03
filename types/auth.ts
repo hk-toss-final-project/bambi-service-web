@@ -3,12 +3,17 @@
  * 백엔드: bambi-service-api /api/auth/*
  */
 
-/** 사용자. 로그인/회원가입/`me` 응답에 공통으로 등장한다. */
+/** 사용자. 로그인/회원가입/`me` 응답에 공통으로 등장한다.
+ * publicId·username·bio 는 07-31 백엔드 UserSummary 확장(#24) — 배포 전 응답과의
+ * 호환을 위해 optional 로 둔다. publicId 는 내 프로필(/users/{publicId}) 진입에 쓴다. */
 export type User = {
   id: number;
   email: string;
   displayName: string;
   roles: string[]; // 예: ["USER"] / ["ADMIN"]
+  publicId?: string;
+  username?: string | null;
+  bio?: string | null;
 };
 
 /** POST /api/auth/login 성공 응답의 data. accessToken 은 data.accessToken 위치. */

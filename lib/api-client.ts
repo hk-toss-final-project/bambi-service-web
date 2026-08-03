@@ -127,3 +127,20 @@ export function apiPost<T>(
 ): Promise<T> {
   return request<T>(path, { ...options, method: "POST", body });
 }
+
+/** PUT. path 는 `/api` 포함 전체 경로. (프로필 편집 등 전체 교체 갱신) */
+export function apiPut<T>(
+  path: string,
+  body?: unknown,
+  options?: Omit<RequestOptions, "body" | "method">,
+): Promise<T> {
+  return request<T>(path, { ...options, method: "PUT", body });
+}
+
+/** DELETE. path 는 `/api` 포함 전체 경로. (언팔로우·스크랩 해제 등 멱등 삭제) */
+export function apiDelete<T>(
+  path: string,
+  options?: Omit<RequestOptions, "body" | "method">,
+): Promise<T> {
+  return request<T>(path, { ...options, method: "DELETE" });
+}
