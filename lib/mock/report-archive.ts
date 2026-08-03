@@ -4,7 +4,7 @@ import type { ReportArchiveMockMeta } from "@/types/report-archive";
 /**
  * 내 보고서 전체 보기(/reports) — **mock 전용 데이터** (목업 library.html 우선 구현 단계).
  *
- * 여기 값은 전부 API 미제공 필드다(태그·유형·공개·통계·조회 이력 + 데모 항목).
+ * 여기 값은 전부 API 미제공 필드다(태그·유형·공개·SNS 통계 + 데모 항목). 조회수·조회 이력은 노출 금지 확정 개념이라 mock 에도 없다.
  * 실제 GET /api/feed 응답(CardResponse)과 절대 섞어 정의하지 않으며, 병합은
  * lib/adapters/report-archive-mock.ts 한 곳에서만 한다. 실 API 확정 시 이 파일을 삭제하고
  * 서버 필드로 교체한다(백엔드 요청 목록은 CLAUDE.md §/reports 참조).
@@ -35,30 +35,24 @@ export const MOCK_ARCHIVE_META_POOL: ReportArchiveMockMeta[] = [
     category: "시장 · 경제",
     reportType: "MORNING_BRIEFING",
     visibility: "PRIVATE",
-    viewCount: 3,
     likeCount: 0,
     commentCount: 0,
-    lastViewedAt: null,
   },
   {
     tags: ["#쇼핑"],
     category: "라이프",
     reportType: "ON_DEMAND",
     visibility: "PRIVATE",
-    viewCount: 1,
     likeCount: 0,
     commentCount: 0,
-    lastViewedAt: null,
   },
   {
     tags: ["#AI"],
     category: "AI · 테크",
     reportType: "MORNING_BRIEFING",
     visibility: "PUBLIC",
-    viewCount: 12,
     likeCount: 4,
     commentCount: 1,
-    lastViewedAt: null,
   },
 ];
 
@@ -101,10 +95,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
       category: "시장 · 경제",
       reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
-      viewCount: 3,
       likeCount: 0,
       commentCount: 0,
-      lastViewedAt: daysAgoAt(0, 9, 40),
     },
   },
   {
@@ -124,10 +116,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
       category: "라이프",
       reportType: "ON_DEMAND",
       visibility: "PRIVATE",
-      viewCount: 1,
       likeCount: 0,
       commentCount: 0,
-      lastViewedAt: null,
     },
   },
   {
@@ -149,10 +139,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
       category: "AI · 테크",
       reportType: "MORNING_BRIEFING",
       visibility: "PUBLIC",
-      viewCount: 54,
       likeCount: 12,
       commentCount: 2,
-      lastViewedAt: daysAgoAt(1, 21, 15),
     },
   },
   {
@@ -172,10 +160,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
       category: "시장 · 경제",
       reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
-      viewCount: 2,
       likeCount: 0,
       commentCount: 0,
-      lastViewedAt: daysAgoAt(0, 8, 5),
     },
   },
   {
@@ -195,10 +181,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
       category: "주식 · 투자",
       reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
-      viewCount: 5,
       likeCount: 0,
       commentCount: 0,
-      lastViewedAt: null,
     },
   },
   {
@@ -219,10 +203,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
       category: "AI · 테크",
       reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
-      viewCount: 7,
       likeCount: 0,
       commentCount: 0,
-      lastViewedAt: daysAgoAt(3, 12, 30),
     },
   },
 ];

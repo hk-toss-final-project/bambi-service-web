@@ -4,8 +4,9 @@ import type { CardSource } from "@/types/feed";
  * 내 보고서 전체 보기(/reports) 화면 모델 — 목업 우선(mock-first) 단계.
  *
  * 실데이터 원천은 기존 GET /api/feed 의 CardResponse(types/feed.ts) 그대로다 — 중복 DTO 를 만들지
- * 않는다. API 에 없는 표시 요소(태그·유형·공개·통계·조회 이력)는 **ReportArchiveMockMeta 로 분리**해
+ * 않는다. API 에 없는 표시 요소(태그·유형·공개·SNS 통계)는 **ReportArchiveMockMeta 로 분리**해
  * 실제 응답인 것처럼 위장하지 않는다(병합은 lib/adapters/report-archive-mock.ts 한 곳).
+ * 조회수·조회 이력은 UI 노출 금지 확정 개념이라 mock 에도 두지 않는다(루트 CLAUDE.md §정보구조).
  */
 export type ArchiveCard = {
   publicId: string;
@@ -28,10 +29,8 @@ export type ReportArchiveMockMeta = {
   category: string | null;
   reportType: "MORNING_BRIEFING" | "ON_DEMAND";
   visibility: "PRIVATE" | "PUBLIC";
-  viewCount: number;
   likeCount: number;
   commentCount: number;
-  lastViewedAt: string | null;
 };
 
 /**

@@ -32,10 +32,10 @@ import type {
 /**
  * 내 보고서 전체 보기 — /reports. 홈 [내 보고서]의 "전체 보기"에서 진입한다.
  * **목업 우선(mock-first) 단계**: 화면 구조·상호작용은 docs/design-handoff/product/library.html 을
- * 기준으로 완성하고, API 에 없는 데이터(태그·유형·공개·통계·조회 이력·데모 항목)는 mock 계약
+ * 기준으로 완성하고, API 에 없는 데이터(태그·유형·공개·SNS 통계·데모 항목)는 mock 계약
  * (lib/mock/report-archive.ts + lib/adapters/report-archive-mock.ts)으로 분리한다.
  * 실 API 모드(기본 — NEXT_PUBLIC_REPORT_ARCHIVE_MOCK 미설정 또는 "true" 아님)에서는 mock UI(태그 필터·
- * 배지·통계·다시 찾은 보고서)가 자동으로 빠지고 실측 필드만 렌더된다(화면 안 깨짐).
+ * 배지·통계)가 자동으로 빠지고 실측 필드만 렌더된다(화면 안 깨짐).
  * mock 모드는 NEXT_PUBLIC_REPORT_ARCHIVE_MOCK="true" 를 명시했을 때만 켜진다(opt-in, 디자인 검증용).
  *
  * 검색·태그·기간·정렬·그룹핑·집계는 전부 클라이언트 순수 함수 — 조건 변경으로 API 를 재호출하지 않는다.
@@ -110,7 +110,7 @@ function ArchiveView() {
             )}
           </main>
 
-          {/* 우측 rail — 쌓인 기록(실측 집계) · 다시 찾은 보고서(mock 전용) */}
+          {/* 우측 rail — 쌓인 기록(실측 createdAt 집계) */}
           {archive.status === "ready" && archive.data.length > 0 && (
             <ReportArchiveRail items={archive.data} />
           )}

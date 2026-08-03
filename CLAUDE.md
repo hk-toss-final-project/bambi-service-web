@@ -90,26 +90,28 @@
   - 실 API 연결(현재): title·summary·whyForYou·sources·createdAt(기간/정렬/날짜 그룹/시각/월별 집계)·
     publicId(상세 이동) — 전부 기존 `GET /api/feed`(`fetchMemberFeed`·`CardResponse` 재사용).
   - mock 전용(`lib/mock/report-archive.ts` + `lib/adapters/report-archive-mock.ts` seam):
-    태그 필터·유형/공개 배지·♡/댓글/조회 통계·「다시 찾은 보고서」(lastViewedAt)·데모 항목.
+    태그 필터·유형/공개 배지·♡/댓글 통계·데모 항목. **조회수·조회 이력(viewCount·lastViewedAt·
+    「다시 찾은 보고서」)은 mock 에서도 제외**(2026-08-03 리뷰 — 노출 금지 확정 개념, 루트 CLAUDE.md §정보구조).
   - 모드: `NEXT_PUBLIC_REPORT_ARCHIVE_MOCK`(**opt-in**) — **미설정·`"false"`·그 외 = 실 API 모드(운영·main 기본,
     mock UI 자동 숨김, 화면 안 깨짐)** · `"true"` = mock 디자인 검증 모드(로컬 디자인 QA 에서만 명시적으로
     활성화). ✅ 07-30 의 "main 머지 전 기본값 반전" 항목은 2026-08-03 완료(미설정 = 실 API).
 - 패널 확정: 태그(mock·단일) · 기간(전체/최근 7일/최근 30일) · 정렬(최신/오래된순) ·
-  보기(**아이콘** 목록/그리드). **묶기 옵션 없음 — 날짜별 고정.** 우측 rail 복원(쌓인 기록 =
-  실측 createdAt 월별 집계 / 다시 찾은 보고서 = mock 전용). **MD 내보내기 제외**(contentMd 없음),
-  그 자리는 결과 건수·검색 범위 안내.
+  보기(**아이콘** 목록/그리드). **묶기 옵션 없음 — 날짜별 고정.** 우측 rail = 쌓인 기록(실측
+  createdAt 월별 집계)만 — 목업의 「다시 찾은 보고서」는 미구현(조회 이력 = 금지 개념).
+  **MD 내보내기 제외**(contentMd 없음), 그 자리는 결과 건수·검색 범위 안내.
 - **실측 근거 (bambi-service-api, 2026-07-30)**: `GET /api/feed` 는 본인 카드 **전량**을 최신순 반환
   (FeedService "P0 피드는 '내 카드 전부'와 동치" · LIMIT/Pageable 없음) → "전체 보기" 성립.
   서버 페이지네이션·검색 API 없음 → 클라이언트 검색. `GET /reports/mine` 계열 없음.
-- **백엔드 요청 목록(실 연결 시 mock 교체 대상)**: `tags: string[]` · `category` · `reportType
-  (MORNING_BRIEFING|ON_DEMAND)` · `visibility(PRIVATE|PUBLIC)` · `likeCount`·`commentCount`·`viewCount` ·
-  사용자별 `lastViewedAt`/`userViewCount`(또는 `GET /api/reports/mine/recently-viewed?limit=3`) ·
+- **백엔드 요청 목록(실 연결 시 mock 교체 대상)**: `tags: string[]`(→ card_interest_tags, 소라 협의 중) ·
+  `category` · `reportType(MORNING_BRIEFING|ON_DEMAND)` · `visibility(PRIVATE|PUBLIC)` · `likeCount`·`commentCount` ·
   대량 대비 `GET /api/reports/mine`(검색·필터·정렬·페이지네이션) · 페이지네이션 시 월별 건수 집계 API ·
-  (후순위) 상세 `contentMd`.
-- ⚠ **관심 자료 저장 의미(계약 확인, 수정 안 함)**: `POST /api/bookmarks` 는 서버가 한 트랜잭션에서
-  **카드까지 동기 생성**한다("P0 즉시 카드 1장", BookmarkService 주석 실측). "저장하기 = 자료만 저장,
-  보고서 생성 없음" 정책과 어긋나는 **백엔드 side effect** — 프론트 중복 호출 아님. 분리하려면
-  `POST /api/materials`(저장만) + `POST /api/reports/on-demand`(온디맨드 분석) 계약 필요.
+  (후순위) 상세 `contentMd`. **조회수 계열(viewCount·lastViewedAt·recently-viewed)은 요청하지 않는다**
+  (07-31 확정: 조회수 노출 금지·API 안 만듦).
+- ⚠ **관심 자료 저장 의미 — ✅ 2026-08-03 해소**: 동기 즉시 카드는 `app.agent.immediate-card.enabled`
+  플래그로 격리됐고(service-api #28) **배포 서버는 OFF** — 저장은 자료 저장(+위키 중계)만 하고
+  응답 `data.card` 는 **null** 이다(정책 "저장 ≠ 보고서 생성" 과 일치). 프론트는 저장 응답의 card 를
+  사용하지 않고 refetch 만 하므로 영향 없음(실측). 보고서는 발행 경로(claim)로만 피드에 도착한다.
+  로컬 compose 는 기본 ON(즉시 카드 유지) — 배포와 로컬의 저장 응답 모양이 다를 수 있음에 유의.
 - `북마크`(Week 3)는 남의 공개 보고서 스크랩으로 **내 보고서와 별개** — 이 화면과 섞지 않는다.
 
 ### ⚡ 2026-07-30 범위 변경 — 관심사 온보딩 구현 승인

@@ -175,11 +175,3 @@ export function monthlyArchiveCounts(
       return { key, label, count };
     });
 }
-
-/** rail "다시 찾은 보고서" — mock 메타 lastViewedAt 최신순 상위 limit 건(실 조회 이력 API 없음). */
-export function recentlyViewedItems(items: ArchiveItem[], limit = 3): ArchiveItem[] {
-  return items
-    .filter((item) => item.mock?.lastViewedAt)
-    .sort((a, b) => Date.parse(b.mock!.lastViewedAt!) - Date.parse(a.mock!.lastViewedAt!))
-    .slice(0, limit);
-}
