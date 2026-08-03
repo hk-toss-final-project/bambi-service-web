@@ -34,8 +34,9 @@ import type {
  * **목업 우선(mock-first) 단계**: 화면 구조·상호작용은 docs/design-handoff/product/library.html 을
  * 기준으로 완성하고, API 에 없는 데이터(태그·유형·공개·통계·조회 이력·데모 항목)는 mock 계약
  * (lib/mock/report-archive.ts + lib/adapters/report-archive-mock.ts)으로 분리한다.
- * 실 API 모드(NEXT_PUBLIC_REPORT_ARCHIVE_MOCK=false)에서는 mock UI(태그 필터·배지·통계·
- * 다시 찾은 보고서)가 자동으로 빠지고 실측 필드만 렌더된다(화면 안 깨짐).
+ * 실 API 모드(기본 — NEXT_PUBLIC_REPORT_ARCHIVE_MOCK 미설정 또는 "true" 아님)에서는 mock UI(태그 필터·
+ * 배지·통계·다시 찾은 보고서)가 자동으로 빠지고 실측 필드만 렌더된다(화면 안 깨짐).
+ * mock 모드는 NEXT_PUBLIC_REPORT_ARCHIVE_MOCK="true" 를 명시했을 때만 켜진다(opt-in, 디자인 검증용).
  *
  * 검색·태그·기간·정렬·그룹핑·집계는 전부 클라이언트 순수 함수 — 조건 변경으로 API 를 재호출하지 않는다.
  * 보고서는 항상 날짜별로 묶는다(묶기 옵션 없음). Markdown 내보내기는 contentMd API 부재로 제외.
@@ -122,12 +123,16 @@ function ArchiveView() {
   );
 }
 
-/** .arch — 흰 카드형 요약. 숫자는 실제 목록 길이(주황 강조), 문구는 데이터 유무로만 갈린다. */
+/**
+ * .arch — 흰 카드형 요약. 숫자는 실제 목록 길이(주황 강조), 문구는 데이터 유무로만 갈린다.
+ * 크기는 목업 .arch 기준(padding 26×28 · radius 16 · 헤드라인 20px/1.5 · 설명 12.5px, 간격 7px) —
+ * 좁은 화면에서는 padding 만 한 단계 줄인다. 고정 수치(128개·주간 추가)는 목업 전용이라 쓰지 않는다.
+ */
 function ArchiveSummary({ total }: { total: number }) {
   return (
-    <section className="mb-4 rounded-[14px] border border-border bg-card px-5 py-4">
+    <section className="mb-4 rounded-2xl border border-border bg-card px-5 py-5 sm:px-7 sm:py-[26px]">
       {/* .an */}
-      <p className="text-[15px] font-bold text-foreground">
+      <p className="text-[20px] leading-[1.5] font-bold tracking-[-0.015em] text-foreground">
         {total > 0 ? (
           <>
             <b className="font-bold text-signal-ink">{total}개</b>의 보고서가 쌓였어요.
@@ -137,7 +142,7 @@ function ArchiveSummary({ total }: { total: number }) {
         )}
       </p>
       {/* .as */}
-      <p className="mt-1 text-[12.5px] leading-[1.65] text-muted-foreground">
+      <p className="mt-[7px] text-[12.5px] leading-[1.65] text-muted-foreground">
         {total > 0
           ? "내 관심사를 바탕으로 완성된 개인 보고서를 한곳에서 검색하고 다시 확인할 수 있어요."
           : "완료된 보고서가 생기면 이곳에서 한 번에 찾아볼 수 있어요."}
@@ -192,11 +197,11 @@ function ArchiveResults({ items }: { items: ArchiveItem[] }) {
     setViewMode("list");
   }
 
-  /** 카드 나열 — 목록: 연속 카드 / 그리드: 반응형 열(1→md 2→lg 3). 날짜 그룹마다 호출된다. */
+  /** 카드 나열 — 목록: 연속 카드 / 그리드: 모바일 1열 → md 이상 2열(목업 grid `1fr 1fr`, 최대 2열). */
   function renderCards(cards: ArchiveItem[]) {
     if (viewMode === "grid") {
       return (
-        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
           {cards.map((item) => (
             <ReportArchiveCard key={item.publicId} item={item} view="grid" />
           ))}
@@ -212,8 +217,8 @@ function ArchiveResults({ items }: { items: ArchiveItem[] }) {
 
   return (
     <>
-      {/* .kb-srow — 검색창 + 필터 버튼 한 행(좁은 폭에서는 자연 wrap) */}
-      <div className="mb-1.5 flex flex-wrap items-center gap-2">
+      {/* .kb-srow — 검색창 + 필터 버튼 한 행(좁은 폭에서는 자연 wrap). 높이 46px = 목업 .kb-search/.kbf-btn. */}
+      <div className="mb-2 flex flex-wrap items-center gap-[9px]">
         <label htmlFor="archive-search" className="sr-only">
           내 보고서에서 검색 — {scopeText}
         </label>
@@ -225,7 +230,7 @@ function ArchiveResults({ items }: { items: ArchiveItem[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="내 보고서에서 검색"
-            className="h-[42px] w-full rounded-xl border border-input bg-card pr-3.5 pl-9 text-sm text-foreground outline-none placeholder:text-low focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-wash"
+            className="h-[46px] w-full rounded-xl border border-input bg-card pr-4 pl-10 text-sm text-foreground outline-none placeholder:text-low focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-wash"
           />
         </div>
         {/* .kbf-btn — 활성 조건이 있으면 강조 + 점 표시 */}
@@ -234,7 +239,7 @@ function ArchiveResults({ items }: { items: ArchiveItem[] }) {
           onClick={() => setPanelOpen((v) => !v)}
           aria-expanded={panelOpen}
           aria-controls="archive-filter-panel"
-          className={`focus-ring inline-flex h-[42px] shrink-0 items-center gap-1.5 rounded-xl border px-3.5 text-[13px] font-semibold whitespace-nowrap ${
+          className={`focus-ring inline-flex h-[46px] shrink-0 items-center gap-[7px] rounded-xl border px-4 text-[13.5px] font-semibold whitespace-nowrap ${
             panelDirty
               ? "border-primary bg-wash text-signal-ink"
               : "border-input bg-card text-ink-mid hover:bg-background"
@@ -544,7 +549,7 @@ function SearchIcon() {
       strokeWidth={1.6}
       strokeLinecap="round"
       aria-hidden="true"
-      className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+      className="pointer-events-none absolute top-1/2 left-[15px] -translate-y-1/2 text-muted-foreground"
     >
       <circle cx="7" cy="7" r="4.4" />
       <path d="m13.5 13.5-3.2-3.2" />
@@ -615,16 +620,16 @@ function ArchiveListSkeleton() {
   const bar = "rounded-md bg-[var(--skel1)]";
   return (
     <div aria-hidden="true">
-      <div className="mb-4 rounded-[14px] border border-border bg-card px-5 py-4">
-        <div className={`h-4 w-48 ${bar}`} />
-        <div className={`mt-2 h-3.5 w-80 max-w-full ${bar}`} />
+      <div className="mb-4 rounded-2xl border border-border bg-card px-5 py-5 sm:px-7 sm:py-[26px]">
+        <div className={`h-5 w-56 max-w-full ${bar}`} />
+        <div className={`mt-2.5 h-3.5 w-80 max-w-full ${bar}`} />
       </div>
-      <div className={`mb-3 h-[42px] w-full rounded-xl ${bar}`} />
+      <div className={`mb-3 h-[46px] w-full rounded-xl ${bar}`} />
       {Array.from({ length: 2 }).map((_, g) => (
         <div key={g} className="animate-pulse">
           <div className={`mt-4 mb-2.5 h-3.5 w-28 ${bar}`} />
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="mb-2.5 rounded-[14px] border border-border bg-card px-[18px] py-[15px]">
+            <div key={i} className="mb-2.5 rounded-[14px] border border-border bg-card px-5 py-4">
               <div className={`h-4 w-3/4 ${bar}`} />
               <div className={`mt-2.5 h-3.5 w-full ${bar}`} />
               <div className={`mt-2.5 h-3 w-24 ${bar}`} />

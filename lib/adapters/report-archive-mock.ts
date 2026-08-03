@@ -9,8 +9,8 @@ import type { ArchiveCard, ArchiveItem } from "@/types/report-archive";
 /**
  * mock 병합 seam — 실데이터(ArchiveCard)와 mock 메타를 합쳐 화면 모델(ArchiveItem)을 만드는 **유일한 지점**.
  *
- * - 실 API 모드(REPORT_ARCHIVE_MOCK_ENABLED=false): 실 카드만, mock=null → 화면은 실측 필드만 렌더.
- * - mock 모드(기본): 디자인 검증용 —
+ * - 실 API 모드(기본 — NEXT_PUBLIC_REPORT_ARCHIVE_MOCK 미설정·"true" 아님): 실 카드만, mock=null → 화면은 실측 필드만 렌더.
+ * - mock 모드(NEXT_PUBLIC_REPORT_ARCHIVE_MOCK="true" 명시 시에만, opt-in): 디자인 검증용 —
  *   1) 실 카드에는 메타 풀을 인덱스 순환으로 배정한다(실 publicId 를 미리 알 수 없어 "동일 publicId 병합"의
  *      실용적 대체 — 실 API 확정 시 서버 필드가 이 자리를 대체한다).
  *   2) 목업 수준의 화면 밀도를 위해 데모 항목(MOCK_ARCHIVE_DEMO_ITEMS)을 뒤에 붙인다.

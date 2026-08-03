@@ -110,7 +110,7 @@ function sectionsToMarkdown(lead: string, sections: ReportSection[]): string {
 }
 
 const READBAR = { backLabel: "홈 피드로", mdCopyLabel: "⧉ MD 복사", shareLabel: "↗ 공유" } as const;
-const REPORT_TITLE = "원/달러 환율, 밤사이 0.8% 하락 — 설정한 트리거 조건 충족";
+const REPORT_TITLE = "원/달러 환율, 밤사이 0.8% 하락";
 const TRUST_PANEL: ReportRailTrust = {
   title: "출처 신뢰도 요약",
   rows: [
@@ -140,7 +140,7 @@ export const MOCK_PRIVATE_REPORT: ReportDetail = {
     reason: [
       { text: "왜 나에게 왔나: 관심사 " },
       { text: "‘원/달러 환율’", bold: true },
-      { text: " 트리거 충족" },
+      { text: " 관련 변동 감지" },
     ],
   },
   savedInitially: true,
@@ -224,7 +224,7 @@ export const MOCK_PUBLIC_REPORT: ReportDetail = {
     meta: "오늘 오전 7:20 · 공개 브리핑",
   },
   title: REPORT_TITLE,
-  lead: "미 CPI 발표를 앞두고 달러가 약세로 전환했습니다. 제가 설정해 둔 트리거에 걸린 야간 변동을 근거와 함께 정리했어요.",
+  lead: "미 CPI 발표를 앞두고 달러가 약세로 전환했습니다. 제가 설정해 둔 조건에 걸린 야간 변동을 근거와 함께 정리했어요.",
   meta: {
     sourceCount: "3건",
     trust: "● 신뢰도 높음",
@@ -233,7 +233,7 @@ export const MOCK_PUBLIC_REPORT: ReportDetail = {
   savedInitially: false,
   bodyKind: "fx-public",
   markdown: [
-    "미 CPI 발표를 앞두고 달러가 약세로 전환했습니다. 제가 설정해 둔 트리거에 걸린 야간 변동을 근거와 함께 정리했어요.",
+    "미 CPI 발표를 앞두고 달러가 약세로 전환했습니다. 제가 설정해 둔 조건에 걸린 야간 변동을 근거와 함께 정리했어요.",
     "",
     "## 핵심 요약",
     "",

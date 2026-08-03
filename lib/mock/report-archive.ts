@@ -9,12 +9,12 @@ import type { ReportArchiveMockMeta } from "@/types/report-archive";
  * lib/adapters/report-archive-mock.ts 한 곳에서만 한다. 실 API 확정 시 이 파일을 삭제하고
  * 서버 필드로 교체한다(백엔드 요청 목록은 CLAUDE.md §/reports 참조).
  *
- * 모드 결정: NEXT_PUBLIC_REPORT_ARCHIVE_MOCK
- * - "false" → 실 API 모드(실측 필드만 렌더, mock UI 자동 숨김)
- * - 미설정·그 외 → **mock 모드(기본)** — 이 브랜치는 목업 완성 우선 단계라 기본을 mock 으로 둔다.
- *   ⚠ main 머지·배포 전에 기본값을 뒤집거나(미설정=실 API) 플래그를 제거해야 한다.
+ * 모드 결정: NEXT_PUBLIC_REPORT_ARCHIVE_MOCK — **opt-in**
+ * - "true" → mock 디자인 검증 모드(로컬 디자인 QA 에서만 명시적으로 켠다)
+ * - 미설정·"false"·그 외 → **실 API 모드(운영 기본)** — 실측 필드만 렌더, mock UI 자동 숨김.
+ *   미설정이면 mock 이 절대 켜지지 않으므로 운영·main 배포에 데모 데이터가 섞일 수 없다.
  */
-export const REPORT_ARCHIVE_MOCK_ENABLED = process.env.NEXT_PUBLIC_REPORT_ARCHIVE_MOCK !== "false";
+export const REPORT_ARCHIVE_MOCK_ENABLED = process.env.NEXT_PUBLIC_REPORT_ARCHIVE_MOCK === "true";
 
 /** 태그 필터 선택지(목업 kbf-row 태그 행). 단일 선택, "전체"는 화면에서 "all" 로 다룬다. */
 export const MOCK_ARCHIVE_TAGS = ["#환율", "#AI", "#반도체", "#쇼핑"] as const;
@@ -86,9 +86,9 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
   {
     card: {
       publicId: "post-fx-trigger",
-      title: "원/달러 환율, 밤사이 0.8% 하락 — 설정한 트리거 조건 충족",
+      title: "원/달러 환율, 밤사이 0.8% 하락",
       summary: "미 CPI 발표를 앞두고 달러가 약세로 전환, 환전 예정 시점과 관련해 확인할 만한 변동이 감지됐습니다.",
-      whyForYou: "관심사 ‘원/달러 환율’ 트리거 충족",
+      whyForYou: "관심사 ‘원/달러 환율’ 관련 변동 감지",
       sources: [
         { title: "한국은행 — 외환시장 동향 공시", url: "https://example.com/bok-fx" },
         { title: "달러 약세 전환 보도", url: "https://example.com/fx-news" },

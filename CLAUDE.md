@@ -91,8 +91,9 @@
     publicId(상세 이동) — 전부 기존 `GET /api/feed`(`fetchMemberFeed`·`CardResponse` 재사용).
   - mock 전용(`lib/mock/report-archive.ts` + `lib/adapters/report-archive-mock.ts` seam):
     태그 필터·유형/공개 배지·♡/댓글/조회 통계·「다시 찾은 보고서」(lastViewedAt)·데모 항목.
-  - 모드: `NEXT_PUBLIC_REPORT_ARCHIVE_MOCK` — **미설정 = mock(디자인 검증, 이 단계 기본)** ·
-    `"false"` = 실 API 모드(mock UI 자동 숨김, 화면 안 깨짐). ⚠ main 머지 전 기본값 반전 필요.
+  - 모드: `NEXT_PUBLIC_REPORT_ARCHIVE_MOCK`(**opt-in**) — **미설정·`"false"`·그 외 = 실 API 모드(운영·main 기본,
+    mock UI 자동 숨김, 화면 안 깨짐)** · `"true"` = mock 디자인 검증 모드(로컬 디자인 QA 에서만 명시적으로
+    활성화). ✅ 07-30 의 "main 머지 전 기본값 반전" 항목은 2026-08-03 완료(미설정 = 실 API).
 - 패널 확정: 태그(mock·단일) · 기간(전체/최근 7일/최근 30일) · 정렬(최신/오래된순) ·
   보기(**아이콘** 목록/그리드). **묶기 옵션 없음 — 날짜별 고정.** 우측 rail 복원(쌓인 기록 =
   실측 createdAt 월별 집계 / 다시 찾은 보고서 = mock 전용). **MD 내보내기 제외**(contentMd 없음),
