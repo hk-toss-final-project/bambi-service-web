@@ -5,7 +5,13 @@
  *   POST /api/bookmarks → 201 ApiResponse<{ bookmark, card }>   (인증)
  *
  * 원칙: API DTO(CardResponse)와 화면 모델(FeedCardVM)을 분리한다. 백엔드가 주지 않는 값
- * (작성자·좋아요·댓글·태그·saved·visibility 등)은 만들지 않는다.
+ * (댓글·태그·saved 등)은 만들지 않는다.
+ *
+ * 소셜 필드(2026-08-04, service-api PR #35 CardResponse.java·CardService.get 실측):
+ * - visibility 는 카드 자체 값이라 모든 경로에서 채워진다(DB NOT NULL + CHECK PRIVATE|PUBLIC).
+ * - author·likeCount·liked 는 **단건 상세(GET /api/cards/{publicId})에서만** 채워진다.
+ *   목록(GET /api/feed)·저장 응답·PATCH visibility 응답은 CardResponse.from() 경로라 셋 다 null 이다.
+ * - 게스트 단건 상세는 liked=false(서버가 viewerId 없음 → false, null 아님).
  */
 
 /**
@@ -27,6 +33,19 @@ export type CardSourceVM = {
   url: string | null;
 };
 
+/** 카드 공개 범위 — DB CHECK 제약(PRIVATE|PUBLIC)과 1:1. 서버 컬럼이 NOT NULL 이라 항상 값이 있다. */
+export type CardVisibility = "PUBLIC" | "PRIVATE";
+
+/**
+ * 작성자 요약 — 공개피드 PublicCardResponse.AuthorResponse 와 같은 모양.
+ * 서버가 탈퇴/부재 작성자에 대해 세 필드 모두 null 인 객체를 줄 수 있다(AuthorResponse.from(null)).
+ */
+export type CardAuthor = {
+  publicId: string | null;
+  username: string | null;
+  displayName: string | null;
+};
+
 /**
  * 카드 응답 DTO — GET /api/feed 항목이자 GET /api/cards/{publicId}·POST /api/bookmarks 응답의 card.
  * 대외 식별자는 publicId(UUID)만 노출한다(내부 순번 id 없음).
@@ -46,8 +65,37 @@ export type CardResponse = {
   title: string;
   summary: string;
   whyForYou: string;
+  /** 카드 공개 범위. 모든 응답 경로에서 채워진다(서버 컬럼 NOT NULL). */
+  visibility: CardVisibility;
+  /** 단건 상세에서만 채워진다. 목록·저장·visibility 변경 응답에서는 null. */
+  author: CardAuthor | null;
+  /** 단건 상세에서만 채워진다. 목록·저장·visibility 변경 응답에서는 null. */
+  likeCount: number | null;
+  /** 단건 상세에서만 채워진다(게스트는 false). 목록·저장·visibility 변경 응답에서는 null. */
+  liked: boolean | null;
   sources: CardSource[];
   createdAt: string; // ISO-8601 (서버 OffsetDateTime)
+};
+
+/**
+ * 단건 상세에서 확정된 소셜 값 — 좋아요 UI 가 쓰는 최소 집합.
+ * CardResponse 의 nullable 소셜 필드를 런타임 검증(lib/adapters/card.ts 의 toCardSocial)으로
+ * 좁힌 결과다. 검증에 실패하면 null 이며, 그때 화면은 좋아요 UI 를 렌더하지 않는다
+ * (?? false · ?? 0 같은 기본값으로 계약 누락을 덮지 않는다).
+ */
+export type CardSocial = {
+  author: CardAuthor;
+  likeCount: number;
+  liked: boolean;
+};
+
+/**
+ * POST/DELETE /api/cards/{publicId}/like 성공 data (service-api LikeResponse 실측).
+ * 요청 body 는 없다. 두 값 모두 서버 확정값 — 프론트가 증감을 계산하지 않는다.
+ */
+export type LikeData = {
+  liked: boolean;
+  likeCount: number;
 };
 
 /**

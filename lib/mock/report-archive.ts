@@ -62,6 +62,13 @@ export type ArchiveDemoItem = {
   meta: ReportArchiveMockMeta;
 };
 
+/**
+ * 목록 경로(GET /api/feed) 소셜 필드 계약 — author·likeCount·liked 는 **단건 상세에서만** 채워지고
+ * 목록 응답에서는 셋 다 null 이다(service-api CardResponse.from 실측). 데모 카드도 같은 모양을 지킨다.
+ * 화면에 보이는 ♡ 수·공개 배지는 실 API 값이 아니라 아래 meta(ReportArchiveMockMeta)에서 온다.
+ */
+const LIST_PATH_SOCIAL = { author: null, likeCount: null, liked: null } as const;
+
 /** 데모 날짜 헬퍼 — 오늘 기준 상대 날짜(ISO). 데모 데이터는 표시 검증용이라 로드 시점 기준이면 충분하다. */
 function daysAgoAt(days: number, hour: number, minute: number): string {
   const d = new Date();
@@ -88,6 +95,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "달러 약세 전환 보도", url: "https://example.com/fx-news" },
         { title: "야간 거래 반응 스레드", url: "https://example.com/fx-thread" },
       ],
+      visibility: "PRIVATE",
+      ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(0, 7, 0),
     },
     meta: {
@@ -109,6 +118,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "국내 출시가 공지", url: "https://example.com/rtx-price" },
         { title: "커뮤니티 시세 정리", url: "https://example.com/rtx-thread" },
       ],
+      visibility: "PRIVATE",
+      ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(0, 14, 12),
     },
     meta: {
@@ -132,6 +143,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "로컬 구동 가이드", url: "https://example.com/llm-local" },
         { title: "커뮤니티 반응", url: "https://example.com/llm-thread" },
       ],
+      visibility: "PUBLIC",
+      ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(1, 7, 0),
     },
     meta: {
@@ -153,6 +166,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "환율 동향 리포트", url: "https://example.com/eur-report" },
         { title: "달러 인덱스 추이", url: "https://example.com/dxy" },
       ],
+      visibility: "PRIVATE",
+      ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(2, 7, 0),
     },
     meta: {
@@ -174,6 +189,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "규제 발표 원문", url: "https://example.com/semi-policy" },
         { title: "증권가 해석 모음", url: "https://example.com/semi-analysis" },
       ],
+      visibility: "PRIVATE",
+      ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(34, 7, 0),
     },
     meta: {
@@ -196,6 +213,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "플랜 비교 표", url: "https://example.com/ai-plans" },
         { title: "사용자 반응", url: "https://example.com/ai-thread" },
       ],
+      visibility: "PRIVATE",
+      ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(65, 7, 0),
     },
     meta: {

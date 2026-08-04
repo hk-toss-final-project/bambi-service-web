@@ -11,9 +11,10 @@ import { SideLeft } from "@/components/home/side-left";
 import { PageState } from "@/components/ui/page-state";
 import { IconAlert, IconSearch } from "@/components/ui/state-icons";
 import { StateView } from "@/components/ui/state-view";
+import { CardLikeButton } from "@/components/report/card-like-button";
 import { useCardDetail } from "@/hooks/use-card-detail";
 import { useReportBody, type ReportBodyState } from "@/hooks/use-report-body";
-import { toFeedCardVM } from "@/lib/adapters/card";
+import { isPublicCard, toCardSocial, toFeedCardVM } from "@/lib/adapters/card";
 import { toReportRailVM } from "@/lib/adapters/report";
 import { ReportMarkdown } from "@/components/report/report-markdown";
 import type { CardResponse } from "@/types/feed";
@@ -29,8 +30,9 @@ import type { CardResponse } from "@/types/feed";
  * 공개 열람(2026-08-04, service-api #30 실측): GET /api/cards/* · /api/reports/* 는 permitAll 이고
  * 권한은 "내 카드 or PUBLIC" 이다 → guest 도, 로그인한 타인도 PUBLIC 카드 상세를 그대로 본다.
  * 남의 PRIVATE·부재·형식오류는 401/403 이 아니라 전부 404 라 아래 DetailNotFound 한 갈래로 모인다.
- * 작성자·좋아요·공개설정은 CardResponse 에 아직 없으므로 이 화면에서 own/other 를 나누지 않는다
- * (추측 금지 — 백엔드가 author·likeCount·liked·visibility 를 내려주면 그때 붙인다).
+ * 좋아요(2026-08-04, service-api PR #35 소셜 필드): PUBLIC 카드에서만 토글을 렌더하고,
+ * 작성자 본인 여부로는 숨기거나 막지 않는다(정책 확정 — 서버도 소유자를 차단하지 않는다).
+ * 소셜 값이 검증되지 않으면(미배포 응답·비정상 null) 좋아요 UI 자체를 두지 않는다.
  * 인증(복구) 상태 우선 → 데이터 상태(두 loading 분리). 백엔드가 주는 값만 렌더한다.
  * 리포트의 title·summary·citations 는 카드의 title·summary·sources 와 같은 발행 payload 라
  * 다시 렌더하지 않는다(중복 방지, PublishProcessingService 실측) — 본문(body)만 추가한다.
@@ -59,6 +61,9 @@ export function CardDetailScreen({ publicId }: { publicId: string }) {
  */
 function CardDetailView({ card, guest }: { card: CardResponse; guest: boolean }) {
   const vm = toFeedCardVM(card);
+  // 좋아요 초기값 — 단건 상세 응답의 author·likeCount·liked 를 런타임 검증해 좁힌다.
+  // 소셜 필드가 없는 응답(미배포·비정상 null)이면 null 이고, 그때는 좋아요 UI 를 렌더하지 않는다.
+  const social = toCardSocial(card);
   // 본문(리포트) — 카드 ready 후에만 이 컴포넌트가 mount 되므로 여기서 2단계 요청을 시작한다.
   const body = useReportBody(card.reportId);
   const [amOpen, setAmOpen] = useState(false);
@@ -103,6 +108,15 @@ function CardDetailView({ card, guest }: { card: CardResponse; guest: boolean })
 
               {/* 리포트 본문 — reportId 로 이어지는 2번째 요청의 상태별 렌더(카드 요약 아래). */}
               <CardReportBody body={body} />
+
+              {/*
+                좋아요 — 본문 아래, 카드 article 최하단. PUBLIC 이고 소셜 값이 검증됐을 때만 렌더한다.
+                PRIVATE 카드는 서버가 좋아요를 404 로 막으므로 버튼 자체를 두지 않는다.
+                작성자 본인 여부는 검사하지 않는다(정책: 본인도 좋아요 가능).
+              */}
+              {isPublicCard(card) && social !== null && (
+                <CardLikeButton publicId={card.publicId} social={social} />
+              )}
             </article>
 
             {/*

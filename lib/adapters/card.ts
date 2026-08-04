@@ -1,5 +1,11 @@
 import { normalizeHttpUrl, normalizeText } from "@/lib/normalize";
-import type { CardResponse, CardSource, CardSourceVM, FeedCardVM } from "@/types/feed";
+import type {
+  CardResponse,
+  CardSocial,
+  CardSource,
+  CardSourceVM,
+  FeedCardVM,
+} from "@/types/feed";
 
 /**
  * CardResponse(API DTO) → FeedCardVM(화면 모델) 변환.
@@ -47,6 +53,37 @@ export function toCardSources(
     normalized.push({ label, url });
   }
   return normalized;
+}
+
+/**
+ * 카드가 공개(PUBLIC)인지 — 좋아요 UI 노출의 1차 조건.
+ *
+ * 서버 컬럼이 NOT NULL + CHECK(PRIVATE|PUBLIC) 이라 정상 응답에는 항상 값이 있지만,
+ * 소셜 필드 배포 전 응답에는 키 자체가 없을 수 있다. 문자열 일치로만 판정해
+ * 값이 없거나 예상 밖이면 "공개 아님"으로 다룬다(비공개 카드에 좋아요를 띄우면 404 를 부른다).
+ */
+export function isPublicCard(card: CardResponse): boolean {
+  return card.visibility === "PUBLIC";
+}
+
+/**
+ * 단건 상세의 소셜 필드 런타임 검증 — 좋아요 UI 가 쓸 수 있는 값일 때만 좁혀 돌려준다.
+ *
+ * 다음 경우는 전부 null(= "소셜 값 없음")이다:
+ * - 소셜 필드 미배포 응답(키 자체가 없음)
+ * - 목록·저장·visibility 변경 응답처럼 계약상 셋 다 null 인 경로
+ * - 타입은 맞지만 값이 비정상인 경우(likeCount 가 음수·NaN·비정수 등)
+ *
+ * null 을 false·0 같은 기본값으로 덮지 않는다. 값이 없으면 화면이 좋아요 UI 를 렌더하지 않는 편이
+ * "0개 좋아요, 누른 적 없음"이라고 잘못 단정하는 것보다 안전하다.
+ */
+export function toCardSocial(card: CardResponse): CardSocial | null {
+  const { author, likeCount, liked } = card;
+  if (author === null || typeof author !== "object") return null;
+  if (typeof liked !== "boolean") return null;
+  if (typeof likeCount !== "number" || !Number.isFinite(likeCount)) return null;
+  if (!Number.isInteger(likeCount) || likeCount < 0) return null;
+  return { author, likeCount, liked };
 }
 
 export function toFeedCardVM(card: CardResponse): FeedCardVM {
