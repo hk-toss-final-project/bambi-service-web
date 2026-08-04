@@ -5,13 +5,16 @@ import Link from "next/link";
 import type { FeedCardVM } from "@/types/feed";
 
 /**
- * 실 피드 카드 — GET /api/feed / POST /api/bookmarks 의 CardResponse 기반(FeedCardVM).
+ * [내 보고서] 카드 — GET /api/feed / POST /api/bookmarks 의 CardResponse 기반(FeedCardVM).
  * 백엔드가 주는 값만 렌더한다: 생성시각 · 제목 · 요약 · 왜 나에게 왔나(whyForYou) · 출처.
- * 작성자·좋아요·댓글·태그·saved 는 백엔드가 주지 않으므로 만들지 않는다(공개 mock PostCard 와 별개).
+ * 작성자·좋아요는 목록 응답(GET /api/feed)에서 null 이라 여기서는 만들지 않는다(단건 상세 전용).
+ *
+ * [피드] 탭의 공개 카드는 별도 DTO(PublicCardResponse)를 쓰는 PublicFeedCard 다 — 이 카드는
+ * 내 카드(개인 관점 whyForYou 포함)를, 그쪽은 남의 공개 카드(작성자·좋아요)를 렌더한다.
  *
  * 제목은 /report/{publicId} 내부 링크다(카드 단건 API GET /api/cards/{publicId} 연동 완료).
  * 제목만 링크로 감싸고(카드 전체를 감싸지 않음), 아래 sources 외부 링크와 중첩되지 않게 둔다.
- * 공통 카드 스타일(border·radius·타이포·reason dot)은 PostCard 와 맞춘다.
+ * 공통 카드 스타일(border·radius·타이포·reason dot)은 PublicFeedCard 와 맞춘다.
  */
 export function FeedCard({ card }: { card: FeedCardVM }) {
   return (

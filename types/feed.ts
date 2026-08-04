@@ -130,3 +130,91 @@ export type FeedCardVM = {
   sources: CardSourceVM[];
   createdAtLabel: string;
 };
+
+/* ─────────────────────────────────────────────────────────────
+   공개 피드 — GET /api/feed/public
+   (bambi-service-api 실측 · 검증일 2026-08-04: FeedController·FeedService·PublicCardResponse)
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * 공개 피드 카드 응답 DTO — `GET /api/feed/public` 배열 항목.
+ *
+ * **`CardResponse` 와 다른 별도 DTO다.** 서버가 내 피드용 `CardResponse` 와 의도적으로 분리해
+ * 두었으므로(PublicCardResponse — "내 피드용 CardResponse 와 분리해 P0 회귀를 막는다") 여기서도
+ * 섞지 않는다. 특히 아래 두 필드가 **없다**:
+ * - `reportId` 없음 → 목록에서 본문으로 바로 갈 수 없다. 상세 진입은 `/report/{publicId}`(카드
+ *   publicId)이고, 본문(reportId)은 카드 상세 화면이 자기 요청으로 알아낸다.
+ * - `visibility` 없음 → 이 엔드포인트는 쿼리 자체가 `visibility = 'PUBLIC'` 이라 전부 공개 카드다
+ *   (CardRepository.findPublicFeed). 프론트가 다시 필터링해서 "걸렀다"고 착각하지 않는다.
+ *
+ * 요청 계약:
+ * - 정렬 `createdAt desc`. 쿼리 파라미터 `limit`(기본 20, 서버가 1~50 으로 clamp) · `following`
+ *   (기본 false, true 면 로그인 필요 — 게스트는 401). **커서·offset 페이지네이션 없음**(항상 page 0)
+ *   → 무한 스크롤·다음 페이지를 만들 수 없다.
+ * - 비로그인 허용(SecurityConfig 에서 GET permitAll). 토큰은 optional 이지만 **의미가 있다**:
+ *   `liked` 가 조회자 기준이라 로그인 상태면 Bearer 를 실어야 정확한 값이 온다(2026-08-04 실측 확인).
+ *
+ * nullability (Java 시그니처 기준):
+ * - `likeCount: long` · `liked: boolean` 은 primitive → **null 이 오지 않는다**(게스트는 liked=false).
+ * - `author` 객체 자체는 항상 있지만 **세 필드가 모두 null 일 수 있다**(AuthorResponse.from(null)).
+ *   서버에 "탈퇴 작성자의 PUBLIC 카드가 피드에 남는다"는 TODO 가 있어 실제로 발생 가능한 경로다.
+ * - `sources[].title` · `sources[].url` 은 각각 독립적으로 null(둘 다 null 인 항목도 존재).
+ * - `whyForYou` 는 계약에 있으나 서버 주석에 폐기 예정(태그로 대체) TODO 가 달려 있다.
+ */
+export type PublicFeedCardResponse = {
+  publicId: string;
+  title: string;
+  summary: string;
+  /** 카드 소유자 관점의 개인 추천 사유. 공개 피드 화면에서는 렌더하지 않는다(어댑터 주석 참조). */
+  whyForYou: string;
+  /** 객체는 항상 존재. 단 publicId·username·displayName 이 동시에 null 일 수 있다. */
+  author: CardAuthor;
+  /** 카드 전체 좋아요 수(조회자 무관). primitive long → null 없음. */
+  likeCount: number;
+  /** **조회자 기준** 좋아요 여부. primitive boolean → null 없음. 비로그인은 false. */
+  liked: boolean;
+  sources: CardSource[];
+  createdAt: string; // ISO-8601 (서버 OffsetDateTime)
+};
+
+/**
+ * 정규화된 작성자(화면 모델).
+ * `name` 은 displayName → username 순으로 고른 **실제** 표시 이름이고, 둘 다 없으면 null 이다.
+ * null 을 임의 이름("익명"·"사용자1" 등)으로 채우지 않는다 — 화면이 "식별 불가"로 렌더한다.
+ * `initial` 은 name 에서 파생한 첫 글자이므로 name 이 null 이면 같이 null 이다(가짜 이니셜 금지).
+ */
+export type PublicFeedAuthorVM = {
+  name: string | null;
+  initial: string | null;
+};
+
+/**
+ * 검증을 통과한 공개 피드 좋아요 값 — 둘 다 **서버 확정값**이다.
+ * 검증에 실패하면 이 객체를 만들지 않고 null 로 둔다(단건 상세의 CardSocial 과 같은 규율):
+ * `0`·`false` 를 채워 넣으면 계약이 깨진 응답을 "좋아요 0개, 누른 적 없음"이라고 단정하게 된다.
+ */
+export type PublicFeedSocialVM = {
+  likeCount: number;
+  liked: boolean;
+};
+
+/**
+ * 공개 피드 카드 화면 모델 — 실제로 렌더할 값만.
+ * DTO 의 `whyForYou` 는 여기에 없다(공개 피드 미노출 결정 — lib/adapters/card.ts 참조).
+ */
+export type PublicFeedCardVM = {
+  publicId: string;
+  title: string;
+  summary: string;
+  author: PublicFeedAuthorVM;
+  /**
+   * 좋아요 값 — 검증을 통과했을 때만 채워진다. null 이면 화면이 **좋아요 영역 자체를 렌더하지
+   * 않는다**(이번 범위에서는 읽기 전용 표시이고, 토글은 카드 상세에만 연결돼 있다).
+   * 카드의 나머지(제목·요약·작성자·출처)는 social 이 null 이어도 그대로 렌더한다.
+   */
+  social: PublicFeedSocialVM | null;
+  /** 정규화된 출처만 담는다 — 빈 출처는 제외되므로 length 가 곧 표시 가능한 출처 건수다. */
+  sources: CardSourceVM[];
+  /** 파싱 실패 시 빈 문자열(임의 날짜 생성 금지) — 화면은 빈 값이면 줄을 생략한다. */
+  createdAtLabel: string;
+};

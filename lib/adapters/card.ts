@@ -1,10 +1,15 @@
 import { normalizeHttpUrl, normalizeText } from "@/lib/normalize";
 import type {
+  CardAuthor,
   CardResponse,
   CardSocial,
   CardSource,
   CardSourceVM,
   FeedCardVM,
+  PublicFeedAuthorVM,
+  PublicFeedCardResponse,
+  PublicFeedCardVM,
+  PublicFeedSocialVM,
 } from "@/types/feed";
 
 /**
@@ -95,4 +100,109 @@ export function toFeedCardVM(card: CardResponse): FeedCardVM {
     sources: toCardSources(card.sources),
     createdAtLabel: formatCreatedAt(card.createdAt),
   };
+}
+
+/* ─────────────────────────────────────────────────────────────
+   공개 피드 (GET /api/feed/public) — PublicCardResponse → 화면 모델
+   ───────────────────────────────────────────────────────────── */
+
+/** 서버 publicId 는 UUID 다. 상세 경로에 그대로 들어가므로 형식이 맞을 때만 링크를 만든다. */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 작성자 정규화 — displayName → username 순으로 **실제 값**을 고른다.
+ *
+ * 둘 다 없으면 name·initial 모두 null 이다. 서버가 탈퇴/부재 작성자에 대해 세 필드가 전부 null 인
+ * AuthorResponse 를 주는 경로가 실제로 있고(AuthorResponse.from(null), FeedService 의 탈퇴 작성자
+ * TODO), 그때 "익명"·"사용자" 같은 이름을 만들어내면 존재하지 않는 사람을 화면에 그리는 셈이다.
+ * 이니셜도 name 에서만 파생한다 — 이름이 없으면 이니셜도 없다.
+ */
+export function toPublicFeedAuthor(author: CardAuthor | null | undefined): PublicFeedAuthorVM {
+  if (author === null || typeof author !== "object") return { name: null, initial: null };
+  const name = normalizeText(author.displayName) ?? normalizeText(author.username);
+  return { name, initial: name === null ? null : Array.from(name)[0] };
+}
+
+/**
+ * 공개 피드 카드 1건 변환 — 렌더 불가한 항목은 **null** 을 돌려 호출부가 건너뛰게 한다.
+ *
+ * 건너뛰는 기준(둘 다 임의 기본값으로 메울 수 없는 값이다):
+ * - `publicId` 가 UUID 문자열이 아님 → 상세 경로(/report/{publicId})를 만들 수 없다. 공개 피드
+ *   카드의 목적이 상세 진입이라 죽은 링크를 만들거나 링크 없는 카드를 남기지 않고 제외한다.
+ *   (React key 로도 쓰이므로 대체할 안정적 식별자가 없다.)
+ * - `title` 이 비어 있음 → 카드의 유일한 필수 표시값이자 링크 텍스트다. "제목 없음" 같은 문구를
+ *   대신 넣지 않는다.
+ *
+ * 나머지 필드는 값이 없으면 그 줄만 생략하고 카드는 살린다(summary·출처·작성자·작성시각).
+ *
+ * `whyForYou` 는 **의도적으로 옮기지 않는다.** 계약에는 있지만 카드 소유자 관점으로 쓰인 문장이라
+ * ("회원님이 방금 저장한 콘텐츠와 같은 주제를 다루고 있어요") 남의 카드를 보는 조회자에게는 사실이
+ * 아니다. 서버도 이 필드를 폐기(관심사 태그로 대체) 예정으로 표시해 두었다. 공개 노출 정책이
+ * 확정되면 그때 붙인다 — 추측으로 먼저 노출하지 않는다.
+ *
+ * 좋아요는 `toPublicFeedSocial` 로 분리해 검증한다 — 값이 온전하지 않으면 카드는 살리고 좋아요
+ * 영역만 렌더하지 않는다(0·false 로 보정하지 않는다).
+ */
+export function toPublicFeedCardVM(
+  card: PublicFeedCardResponse | null | undefined,
+): PublicFeedCardVM | null {
+  if (card === null || typeof card !== "object") return null;
+
+  const publicId = normalizeText(card.publicId);
+  if (publicId === null || !UUID_PATTERN.test(publicId)) return null;
+
+  const title = normalizeText(card.title);
+  if (title === null) return null;
+
+  return {
+    publicId,
+    title,
+    summary: normalizeText(card.summary) ?? "",
+    author: toPublicFeedAuthor(card.author),
+    social: toPublicFeedSocial(card),
+    sources: toCardSources(card.sources),
+    createdAtLabel: typeof card.createdAt === "string" ? formatCreatedAt(card.createdAt) : "",
+  };
+}
+
+/**
+ * 좋아요 값 런타임 검증 — 서버 primitive(`long`·`boolean`)라 정상 응답에서는 항상 오지만,
+ * 배포 차이·비정상 응답을 계약 위반으로 취급하고 **기본값으로 덮지 않는다**.
+ *
+ * 통과 조건은 둘 다 만족해야 한다:
+ * - `likeCount` 가 0 이상의 정확한 정수 (음수·NaN·Infinity·소수 전부 거른다)
+ * - `liked` 가 진짜 boolean (`null`·`"false"` 같은 문자열은 거른다)
+ *
+ * 하나라도 어긋나면 null → 화면이 좋아요 영역을 그리지 않는다. `likeCount: 0`·`liked: false` 는
+ * **정상 값이므로 통과**한다(0개·누르지 않음은 사실이며, 검증 실패와 구분된다).
+ * 단건 상세의 toCardSocial 과 같은 규율을 공개 피드에도 그대로 적용한 것이다.
+ */
+export function toPublicFeedSocial(
+  card: Pick<PublicFeedCardResponse, "likeCount" | "liked">,
+): PublicFeedSocialVM | null {
+  const { likeCount, liked } = card;
+  if (typeof liked !== "boolean") return null;
+  if (typeof likeCount !== "number" || !Number.isInteger(likeCount) || likeCount < 0) return null;
+  return { likeCount, liked };
+}
+
+/**
+ * 공개 피드 배열 변환 — 렌더 불가 항목만 제외하고 나머지는 그대로 살린다.
+ *
+ * 배열 자체가 아니면(계약 위반) 빈 배열이 아니라 **throw** 한다 → 훅이 error 상태로 정규화해
+ * "공개 브리핑이 없어요"(Empty)와 "불러오지 못했어요"(Error)가 섞이지 않는다.
+ * 일부 항목만 잘못된 경우는 전체를 실패로 만들지 않는다(멀쩡한 카드는 보여준다).
+ */
+export function toPublicFeedCards(
+  cards: readonly (PublicFeedCardResponse | null | undefined)[] | null | undefined,
+): PublicFeedCardVM[] {
+  if (!Array.isArray(cards)) {
+    throw new TypeError("public feed: expected an array of cards");
+  }
+  const result: PublicFeedCardVM[] = [];
+  for (const card of cards) {
+    const vm = toPublicFeedCardVM(card);
+    if (vm !== null) result.push(vm);
+  }
+  return result;
 }

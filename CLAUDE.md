@@ -545,7 +545,15 @@ main(또는 develop) 최신화 (git pull)
 
 ### 팀 확인 대기
 - [ ] **Google 로그인 버튼** 노출 여부 (§7-2)
-- [ ] **홈 피드 / 카드 상세 / 관심 자료 저장 API** 경로·스키마 (영현 도메인 착수 전)
+- [x] ~~**홈 피드 / 카드 상세 / 관심 자료 저장 API** 경로·스키마~~ → **전부 해소·연결 완료.**
+  `GET /api/feed`(내 보고서) · `GET /api/feed/public`(공개 피드, 2026-08-04) ·
+  `GET /api/cards/{publicId}`(카드 상세) · `POST /api/bookmarks`(관심 자료 저장).
+  공개 피드는 내 피드와 **다른 DTO**(`PublicCardResponse`)를 쓰고 `reportId`·`visibility` 가 없다 —
+  계약 상세·nullability 는 `types/feed.ts` 참조.
+- [ ] **댓글 API** 경로·스키마·권한 정책 (미구현 — mock 보고서 상세의 「댓글 · 메모」 블록만 존재.
+  `/api/notes` 는 카드·리포트 FK 가 없는 reference CRUD 템플릿이라 전용할 수 없다)
+- [ ] **피드 카드에서 좋아요 토글** 연결 여부 (현재 공개 피드 카드는 `likeCount`·`liked` **읽기 전용 표시**.
+  토글 API `POST/DELETE /api/cards/{publicId}/like` 는 카드 상세에만 연결돼 있다)
 
 ### 프론트 내부 결정 후 문서화
 - (없음 — 아래 「해소 완료 · 프론트 내부 결정」 참조)

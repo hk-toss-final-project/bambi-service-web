@@ -120,10 +120,10 @@ function HomeView({ isMember }: { isMember: boolean }) {
                 <MemberFeed feed={memberFeed} emptyState={myReportsEmptyState} />
               </div>
             )}
-            {/* [피드] — READY+PUBLIC 공개 보고서 mock. member·guest 공통(개인 '나만 보기' 블록은 FeedRec 에서 제거).
-                guest 는 PostCard 개인화 신호(추천 사유·보관 상태·본인 강조)만 숨긴다 — 액션 로그인 게이트는 requireAuth 담당. */}
+            {/* [피드] — 공개 피드 실데이터(GET /api/feed/public). member·guest 가 같은 엔드포인트를 쓰고
+                렌더하는 값이 전부 공개 데이터라 guest 분기가 없다(개인 '나만 보기' 블록은 [내 보고서] 몫). */}
             <div role="tabpanel" id="panel-rec" aria-labelledby="tab-rec" hidden={effectiveTab !== "rec"}>
-              <FeedRec guest={!isMember} />
+              <FeedRec />
             </div>
           </main>
 

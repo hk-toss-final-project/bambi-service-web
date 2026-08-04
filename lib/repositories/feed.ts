@@ -1,34 +1,37 @@
 import { apiGet } from "@/lib/api-client";
-import { MOCK_POSTS, type FeedPost } from "@/lib/mock/feed";
-import type { CardResponse } from "@/types/feed";
+import type { CardResponse, PublicFeedCardResponse } from "@/types/feed";
 
 /**
  * 피드 데이터 repository — 화면 훅과 데이터 소스 사이의 단일 seam.
  *
- * ★★ 실제 API 교체 지점 ★★
- * 지금은 동기 mock 배열을 Promise 로 감싸 반환한다(동기 mock → 비동기 계층 승격).
- * 홈 피드/내 보고서 API는 미확정(영현 도메인 착수 전, CLAUDE.md §2·§15) — 경로·스키마 추측 금지.
- * 계약 확정 시 이 파일의 본문만 apiGet 호출로 교체한다(훅·컴포넌트 무변경):
- *   export const fetchRecFeed = (signal?: AbortSignal) =>
- *     apiGet<FeedPost[]>("/api/<확정경로>", { signal });
- * 그 시점에 lib/mock/feed.ts 의 데이터는 삭제하고, 필요한 타입은 types/ 로 이관한다.
- * (실제 계약에 따라 페이지네이션 등으로 반환 타입이 일부 조정될 수 있다.)
+ * 두 피드 모두 실 API 다(mock 없음):
+ *   [내 보고서] GET /api/feed         → CardResponse[]            (인증 필수, 최신순)
+ *   [피드]      GET /api/feed/public  → PublicFeedCardResponse[]  (비로그인 허용, 최신순)
+ *
+ * 두 응답은 **서로 다른 DTO** 다 — 서버가 공개 피드를 PublicCardResponse 로 분리해 두었으므로
+ * (내 피드 P0 회귀 차단 목적) 프론트도 타입을 섞지 않는다. 계약 상세는 types/feed.ts 참조.
  */
 
-/** mock 값을 Promise 로 감싸되 AbortSignal 을 존중한다(실 API 의 취소 계약을 미리 반영). */
-function resolveAbortable<T>(value: T, signal?: AbortSignal): Promise<T> {
-  if (signal?.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
-  return Promise.resolve(value);
-}
-
-/** [피드] 탭(guest) — 공개 추천 피드(mock). 비로그인 홈에서만 쓴다. 빈 배열이면 훅이 empty 로 정규화한다. */
-export function fetchRecFeed(signal?: AbortSignal): Promise<FeedPost[]> {
-  return resolveAbortable(MOCK_POSTS, signal);
+/**
+ * [피드] 탭 — 공개 피드. member·guest 가 **같은** 엔드포인트를 쓴다.
+ *
+ * 인증은 optional 이지만 의미가 있다: 응답의 `liked` 가 조회자 기준이라 로그인 상태면 Bearer 를
+ * 실어야 정확한 값이 온다(2026-08-04 실측: 같은 카드가 토큰 유무로 liked true/false 로 갈림).
+ * 공통 client 의 기본값(`auth: true`)이 정확히 그 동작이다 — 저장된 토큰이 있으면 붙이고 없으면
+ * 헤더를 생략한다. 그래서 `{ auth: false }` 를 주지 않는다.
+ *
+ * `limit`·`following` 은 서버 기본값(20 · false)을 그대로 쓴다. 서버가 항상 page 0 만 돌려주고
+ * 커서·offset 이 없어 "다음 페이지" 개념이 없다 → 여기서도 페이지 파라미터를 만들지 않는다.
+ * (`following=true` 는 팔로잉 스코프로 로그인이 필요하며 이번 범위가 아니다.)
+ *
+ * 빈 배열(공개 카드 없음)이면 훅이 empty 로 정규화한다.
+ */
+export function fetchPublicFeed(signal?: AbortSignal): Promise<PublicFeedCardResponse[]> {
+  return apiGet<PublicFeedCardResponse[]>("/api/feed/public", { signal });
 }
 
 /**
- * [피드] 탭(member) — 로그인 사용자의 카드 피드. GET /api/feed(인증, 최신순).
- * guest 피드는 위 mock 을 유지하고, member 피드만 이 함수로 실 API 를 쓴다(useMemberFeed 가 소비).
+ * [내 보고서] 탭 — 로그인 사용자의 카드 피드. GET /api/feed(인증, 최신순).
  * 빈 배열(신규 계정 등)이면 훅이 empty 로 정규화한다.
  */
 export function fetchMemberFeed(signal?: AbortSignal): Promise<CardResponse[]> {
