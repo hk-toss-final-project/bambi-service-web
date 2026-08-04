@@ -37,32 +37,29 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
         </div>
       )}
 
-      {/* 출처 — 실제 URL 이 있으면 외부 링크, 없으면 제목 텍스트. */}
+      {/* 출처 — 어댑터가 정규화한 것만 온다(빈 출처 제외). URL 이 있으면 외부 링크, 없으면 텍스트. */}
       {card.sources.length > 0 && (
         <div className="border-t border-border pt-2.5">
           <div className="mb-1.5 text-[11.5px] font-semibold text-muted-foreground">
             출처 {card.sources.length}건
           </div>
           <ul className="flex flex-col gap-1.5">
-            {card.sources.map((source, i) => {
-              const label = source.title?.trim() || source.url;
-              return (
-                <li key={`${card.publicId}-src-${i}`} className="text-[13px] leading-[1.5]">
-                  {source.url ? (
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="focus-ring rounded-[3px] font-semibold text-signal-ink hover:underline"
-                    >
-                      {label} ↗
-                    </a>
-                  ) : (
-                    <span className="text-ink-mid">{label}</span>
-                  )}
-                </li>
-              );
-            })}
+            {card.sources.map((source, i) => (
+              <li key={`${card.publicId}-src-${i}`} className="text-[13px] leading-[1.5]">
+                {source.url ? (
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="focus-ring rounded-[3px] font-semibold text-signal-ink hover:underline"
+                  >
+                    {source.label} ↗
+                  </a>
+                ) : (
+                  <span className="text-ink-mid">{source.label}</span>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
       )}

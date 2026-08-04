@@ -12,16 +12,25 @@ import { PageState } from "@/components/ui/page-state";
 import { IconAlert, IconSearch } from "@/components/ui/state-icons";
 import { StateView } from "@/components/ui/state-view";
 import { useCardDetail } from "@/hooks/use-card-detail";
+import { useReportBody, type ReportBodyState } from "@/hooks/use-report-body";
 import { toFeedCardVM } from "@/lib/adapters/card";
+import { toReportRailVM } from "@/lib/adapters/report";
+import { ReportMarkdown } from "@/components/report/report-markdown";
 import type { CardResponse } from "@/types/feed";
 
 /**
  * 실 카드 상세 (GET /api/cards/{publicId}) — /report/{UUID}.
  *
- * 실 카드는 인증·소유자 전용이라 guest 는 접근 제한, 그 외에는 소유자 본인만 조회된다(비소유자·부재 404).
- * 인증(복구) 상태 우선 → 데이터 상태(두 loading 분리). 백엔드가 주는 값만 렌더한다
- * (작성자·좋아요·댓글·태그·visibility·본문 등 없음). 크롬(HomeNav·SideLeft·reader)만 mock 상세와
- * 공유하고, 본문은 실 필드(title·summary·whyForYou·sources·createdAt)로만 구성한다.
+ * 2단계 데이터 흐름(2026-08-03 본문 연결, service-api PR #25·#30 실측):
+ *   GET /api/cards/{publicId} → CardResponse.reportId(리포트 publicId, nullable)
+ *   → reportId 있으면 GET /api/reports/{reportId} → body(Markdown) 렌더(ReportMarkdown).
+ *   reportId=null 은 계약상 "리포트 없는 카드"(동기 즉시 카드 등) — 본문 섹션 없이 기존 요약 화면 그대로.
+ *
+ * guest 는 기존 정책대로 접근 제한을 유지한다(공개 카드 게스트 열람은 별도 후속 작업 —
+ * 백엔드는 #30 에서 허용됐지만 프론트 공개 이동 UX 와 함께 붙인다).
+ * 인증(복구) 상태 우선 → 데이터 상태(두 loading 분리). 백엔드가 주는 값만 렌더한다.
+ * 리포트의 title·summary·citations 는 카드의 title·summary·sources 와 같은 발행 payload 라
+ * 다시 렌더하지 않는다(중복 방지, PublishProcessingService 실측) — 본문(body)만 추가한다.
  * id 존재검증·라우팅은 서버(app/report/[id]/page.tsx)가 하고, 여기선 등록된 UUID 의 데이터만 다룬다.
  */
 export function CardDetailScreen({ publicId }: { publicId: string }) {
@@ -44,6 +53,8 @@ export function CardDetailScreen({ publicId }: { publicId: string }) {
 /** 실제 상세 렌더 — 실 필드만. 크롬은 mock 상세와 공유하되 보관/공유/MD·우측 rail 은 두지 않는다. */
 function CardDetailView({ card }: { card: CardResponse }) {
   const vm = toFeedCardVM(card);
+  // 본문(리포트) — 카드 ready 후에만 이 컴포넌트가 mount 되므로 여기서 2단계 요청을 시작한다.
+  const body = useReportBody(card.reportId);
   const [amOpen, setAmOpen] = useState(false);
 
   return (
@@ -83,9 +94,16 @@ function CardDetailView({ card }: { card: CardResponse }) {
                   <span>{vm.whyForYou}</span>
                 </div>
               )}
+
+              {/* 리포트 본문 — reportId 로 이어지는 2번째 요청의 상태별 렌더(카드 요약 아래). */}
+              <CardReportBody body={body} />
             </article>
 
-            {/* 출처 — 실제 URL 외부 링크(mock 상세의 시각 전용 "원문 열기"와 달리 실제 이동). */}
+            {/*
+              출처 — 어댑터(toCardSources)가 정규화한 출처만 온다: 빈 출처({title:null,url:null} 등)는
+              제외되고, 건수도 정규화 결과 기준이다. 유효 출처가 0건이면 섹션 자체를 렌더하지 않는다.
+              URL 은 http/https 인 경우에만 실제 외부 링크로 나간다(mock 상세의 시각 전용 링크와 다름).
+            */}
             {vm.sources.length > 0 && (
               <section className="mb-4 rounded-2xl border border-border bg-card px-6 py-5">
                 <div className="mb-3.5 text-[15px] font-bold text-foreground">
@@ -95,48 +113,161 @@ function CardDetailView({ card }: { card: CardResponse }) {
                   </span>
                 </div>
                 <ul className="flex flex-col gap-2">
-                  {vm.sources.map((source, i) => {
-                    const label = source.title?.trim() || source.url;
-                    return (
-                      <li
-                        key={`${vm.publicId}-src-${i}`}
-                        className="flex items-center gap-[11px] rounded-[10px] border border-border bg-card px-3.5 py-[11px]"
-                      >
-                        <span className="w-[22px] shrink-0 text-[11.5px] text-muted-foreground">
-                          [{i + 1}]
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-[13.5px] font-semibold text-foreground">
-                            {label}
-                          </div>
-                          {source.url && (
-                            <div className="mt-px truncate text-[11.5px] text-muted-foreground">
-                              {source.url}
-                            </div>
-                          )}
+                  {vm.sources.map((source, i) => (
+                    <li
+                      key={`${vm.publicId}-src-${i}`}
+                      className="flex items-center gap-[11px] rounded-[10px] border border-border bg-card px-3.5 py-[11px]"
+                    >
+                      <span className="w-[22px] shrink-0 text-[11.5px] text-muted-foreground">
+                        [{i + 1}]
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13.5px] font-semibold text-foreground">
+                          {source.label}
                         </div>
-                        {source.url && (
-                          <a
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="focus-ring ml-auto shrink-0 rounded-[3px] text-xs font-semibold whitespace-nowrap text-signal-ink hover:underline"
-                          >
-                            원문 열기 ↗
-                          </a>
+                        {/* 제목이 없어 URL 이 라벨로 쓰인 출처는 같은 URL 을 두 번 쓰지 않는다. */}
+                        {source.url && source.url !== source.label && (
+                          <div className="mt-px truncate text-[11.5px] text-muted-foreground">
+                            {source.url}
+                          </div>
                         )}
-                      </li>
-                    );
-                  })}
+                      </div>
+                      {source.url && (
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="focus-ring ml-auto shrink-0 rounded-[3px] text-xs font-semibold whitespace-nowrap text-signal-ink hover:underline"
+                        >
+                          원문 열기 ↗
+                        </a>
+                      )}
+                    </li>
+                  ))}
                 </ul>
               </section>
             )}
           </main>
+
+          {/* 우측 rail — 실 UUID 상세 전용. 값이 실제로 있는 리포트(ready)에서만 렌더된다. */}
+          <CardReportRail body={body} />
         </div>
       </div>
 
       <AddMaterialModal open={amOpen} onClose={() => setAmOpen(false)} />
     </div>
+  );
+}
+
+/**
+ * 리포트 본문 섹션 — useReportBody 상태별 렌더. 카드 요약 article 내부, whyForYou 아래에 붙는다.
+ * - none: reportId=null(계약: 리포트 없는 카드) → 아무것도 렌더하지 않는다(기존 요약 화면 유지,
+ *   생성 중 같은 추측 상태 금지).
+ * - ready 인데 body 가 비어 있으면(컬럼 nullable) 섹션 자체를 생략한다(빈 껍데기 금지).
+ * - notFound: 404(부재·접근 불가 — 존재 노출 없음) → 조용한 안내만(재시도 무의미).
+ * - error: 일시 오류 → 본문만 다시 시도(카드 요약은 이미 떠 있다).
+ */
+function CardReportBody({ body }: { body: ReportBodyState & { refetch: () => void } }) {
+  if (body.status === "none") return null;
+
+  if (body.status === "loading") {
+    const bar = "rounded-md bg-[var(--skel1)]";
+    return (
+      <div className="mt-4 border-t border-border pt-4">
+        <div aria-hidden="true" className="animate-pulse">
+          <div className={`mb-3 h-4 w-36 ${bar}`} />
+          <div className={`mb-2 h-4 w-full ${bar}`} />
+          <div className={`mb-2 h-4 w-[92%] ${bar}`} />
+          <div className={`h-4 w-[68%] ${bar}`} />
+        </div>
+        <span className="sr-only" role="status">
+          본문을 불러오는 중…
+        </span>
+      </div>
+    );
+  }
+
+  if (body.status === "error") {
+    return (
+      <div role="alert" className="mt-4 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-border bg-background px-4 py-3">
+          <p className="min-w-0 flex-1 text-[13px] leading-[1.6] text-ink-mid">
+            본문을 불러오지 못했어요. 일시적인 문제일 수 있어요.
+          </p>
+          <button
+            type="button"
+            onClick={body.refetch}
+            className="focus-ring shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-[12.5px] font-semibold text-ink-mid hover:bg-background"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (body.status === "notFound") {
+    return (
+      <div className="mt-4 border-t border-border pt-4">
+        <p className="text-[13px] leading-[1.6] text-muted-foreground">
+          본문을 찾을 수 없어요 — 이미 삭제됐거나 접근할 수 없는 본문이에요.
+        </p>
+      </div>
+    );
+  }
+
+  const markdown = body.report.body?.trim() ?? "";
+  if (markdown === "") return null; // body 컬럼 nullable — 빈 본문이면 섹션 생략
+
+  return (
+    <div className="mt-4 border-t border-border pt-1.5">
+      <ReportMarkdown markdown={markdown} />
+    </div>
+  );
+}
+
+/**
+ * 우측 rail — mock 상세(ReportScreen)의 "출처 신뢰도 요약" rail 과 시각적으로 정렬되는 실 데이터 전용 카드.
+ * SideRight(홈 rail)는 쓰지 않는다. 레이아웃은 SideLeft(300px) + reader(760px) + rail(300px), gap 22px.
+ *
+ * 표시하는 값은 API 가 실제로 주는 것만이다:
+ * - 출처: 정규화된 유효 citation 개수(raw citations.length 아님). 0 이면 행을 숨긴다.
+ *   카드 sources 와 합산하지 않는다(같은 발행 payload 라 합치면 중복 계산).
+ * - 마지막 업데이트: report.createdAt 포맷. 파싱 실패면 행을 숨긴다.
+ * 신뢰도·조회수·읽음 시간·작성자 통계처럼 API 에 없는 값은 만들지 않는다.
+ *
+ * none·loading·error·notFound 에서는 report 기반 수치가 존재하지 않으므로 rail 자체를 렌더하지 않는다
+ * (임의 날짜·임의 수치 생성 금지). 표시할 행이 하나도 없으면 빈 카드도 두지 않는다.
+ * 반응형: 1240px 이하 rail 숨김 / 1100px 이하 좌측 내비 숨김(SideLeft) → 모바일은 본문 단일 칼럼.
+ */
+function CardReportRail({ body }: { body: ReportBodyState }) {
+  if (body.status !== "ready") return null;
+
+  const rail = toReportRailVM(body.report);
+  const rows: { label: string; value: string }[] = [];
+  if (rail.citationCount > 0) rows.push({ label: "출처", value: `${rail.citationCount}건` });
+  if (rail.updatedAtLabel !== "") {
+    rows.push({ label: "마지막 업데이트", value: rail.updatedAtLabel });
+  }
+  if (rows.length === 0) return null;
+
+  return (
+    <aside className="sticky top-4 flex w-[300px] shrink-0 flex-col gap-3.5 max-[1240px]:hidden">
+      <div className="rounded-[14px] border border-border bg-card px-4 py-[15px]">
+        <h4 className="mb-[15px] flex items-center text-[13px] font-bold text-foreground">
+          본문 정보
+        </h4>
+        {rows.map((row, i) => (
+          <div
+            key={row.label}
+            className={`flex items-center justify-between gap-3 border-t border-border py-2 text-[12.5px] text-ink-mid ${i === 0 ? "border-t-0 pt-px" : ""}`}
+          >
+            <span className="shrink-0">{row.label}</span>
+            <b className="min-w-0 truncate font-bold text-foreground">{row.value}</b>
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 }
 
