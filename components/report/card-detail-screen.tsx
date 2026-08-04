@@ -26,8 +26,11 @@ import type { CardResponse } from "@/types/feed";
  *   → reportId 있으면 GET /api/reports/{reportId} → body(Markdown) 렌더(ReportMarkdown).
  *   reportId=null 은 계약상 "리포트 없는 카드"(동기 즉시 카드 등) — 본문 섹션 없이 기존 요약 화면 그대로.
  *
- * guest 는 기존 정책대로 접근 제한을 유지한다(공개 카드 게스트 열람은 별도 후속 작업 —
- * 백엔드는 #30 에서 허용됐지만 프론트 공개 이동 UX 와 함께 붙인다).
+ * 공개 열람(2026-08-04, service-api #30 실측): GET /api/cards/* · /api/reports/* 는 permitAll 이고
+ * 권한은 "내 카드 or PUBLIC" 이다 → guest 도, 로그인한 타인도 PUBLIC 카드 상세를 그대로 본다.
+ * 남의 PRIVATE·부재·형식오류는 401/403 이 아니라 전부 404 라 아래 DetailNotFound 한 갈래로 모인다.
+ * 작성자·좋아요·공개설정은 CardResponse 에 아직 없으므로 이 화면에서 own/other 를 나누지 않는다
+ * (추측 금지 — 백엔드가 author·likeCount·liked·visibility 를 내려주면 그때 붙인다).
  * 인증(복구) 상태 우선 → 데이터 상태(두 loading 분리). 백엔드가 주는 값만 렌더한다.
  * 리포트의 title·summary·citations 는 카드의 title·summary·sources 와 같은 발행 payload 라
  * 다시 렌더하지 않는다(중복 방지, PublishProcessingService 실측) — 본문(body)만 추가한다.
@@ -40,18 +43,21 @@ export function CardDetailScreen({ publicId }: { publicId: string }) {
   // 1) 인증(복구) 상태 — 확정 전엔 데이터 화면을 내보내지 않는다.
   if (status === "loading") return <DetailSkeleton />;
   if (status === "error") return <DetailAuthError onRetry={refreshAuth} />;
-  // 실 카드는 소유자 전용 → guest 는 API 호출 없이 접근 제한.
-  if (status === "guest") return <DetailAccessRestricted />;
 
-  // 2) 데이터 상태 — authenticated 에서만 평가.
+  // 2) 데이터 상태 — 인증 확정(guest·authenticated) 후에 평가한다.
+  //    guest 도 여기까지 온다: PUBLIC 이면 상세가 뜨고, 아니면 API 404 → DetailNotFound.
   if (detail.status === "loading") return <DetailSkeleton />;
   if (detail.status === "error") return <DetailDataError onRetry={detail.refetch} />;
   if (detail.status === "notFound") return <DetailNotFound />;
-  return <CardDetailView card={detail.card} />;
+  return <CardDetailView card={detail.card} guest={status === "guest"} />;
 }
 
-/** 실제 상세 렌더 — 실 필드만. 크롬은 mock 상세와 공유하되 보관/공유/MD·우측 rail 은 두지 않는다. */
-function CardDetailView({ card }: { card: CardResponse }) {
+/**
+ * 실제 상세 렌더 — 실 필드만. 크롬은 mock 상세와 공유하되 보관/공유/MD·우측 rail 은 두지 않는다.
+ * guest 는 좌측 내비를 아이콘 전용으로 렌더한다(§15) — 홈 외 항목은 GuestGateModal 로 게이트된다.
+ * 상단 HomeNav 는 자체적으로 useAuth 로 분기하므로 별도 prop 이 필요 없다.
+ */
+function CardDetailView({ card, guest }: { card: CardResponse; guest: boolean }) {
   const vm = toFeedCardVM(card);
   // 본문(리포트) — 카드 ready 후에만 이 컴포넌트가 mount 되므로 여기서 2단계 요청을 시작한다.
   const body = useReportBody(card.reportId);
@@ -63,7 +69,7 @@ function CardDetailView({ card }: { card: CardResponse }) {
       <div className="mx-auto max-w-[1440px]">
         <div className="flex items-start justify-center gap-[22px] px-5 pt-6 pb-14">
           {/* 개인 foot 데이터가 없어 footLines 는 비운다(임의 생성 금지). */}
-          <SideLeft footLines={[]} />
+          <SideLeft footLines={[]} guest={guest} />
 
           <main className="min-w-0 max-w-[760px] flex-1">
             {/* .readbar — 뒤로가기만(보관/공유/MD 는 실 카드 미지원 → 두지 않음) */}
@@ -346,8 +352,10 @@ function DetailDataError({ onRetry }: { onRetry: () => void }) {
 }
 
 /**
- * 화면 내부 Not Found — API 404(존재하지 않음/비소유/soft delete). 서버 notFound() 가 아니라
+ * 화면 내부 Not Found — API 404(존재하지 않음/남의 PRIVATE/soft delete). 서버 notFound() 가 아니라
  * 클라이언트 상태다(정상 UUID 는 서버가 존재를 알 수 없어 200 으로 렌더된 뒤 이 상태가 뜬다).
+ * 백엔드가 비공개를 403 이 아닌 404 로 감추므로(존재 노출 없음) guest·member 모두 같은 화면을 본다 —
+ * "로그인하면 볼 수 있다"고 안내하지 않는다(사실이 아닐 수 있고, 카드 존재를 알려주게 된다).
  */
 function DetailNotFound() {
   return (
@@ -364,32 +372,6 @@ function DetailNotFound() {
           </>
         }
         actions={[{ label: "홈 피드로", href: "/", variant: "primary" }]}
-      />
-    </div>
-  );
-}
-
-/** guest 접근 제한 — 실 카드는 로그인한 소유자만 볼 수 있다(API 미호출). */
-function DetailAccessRestricted() {
-  return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
-      <HomeNav onAddOpen={() => {}} />
-      <PageState
-        role="alert"
-        iconTone="brand"
-        icon={<Orb size={22} />}
-        title="로그인이 필요한 페이지예요"
-        description={
-          <>
-            이 카드는 로그인한 본인만 볼 수 있어요.
-            <br />
-            로그인하면 내 카드 상세를 확인할 수 있어요.
-          </>
-        }
-        actions={[
-          { label: "로그인", href: "/login", variant: "primary" },
-          { label: "공개 홈으로", href: "/", variant: "ghost" },
-        ]}
       />
     </div>
   );

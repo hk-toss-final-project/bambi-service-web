@@ -14,6 +14,11 @@ import type { ReportResponse } from "@/types/report";
  * - fetchCardDetail(실): GET /api/cards/{publicId} — 실 UUID 카드 요약.
  * - fetchReportBody(실): GET /api/reports/{reportPublicId} — 카드 reportId 로 잇는 본문
  *   (2026-08-03 연결, service-api PR #25·#30 실측).
+ *
+ * 두 실 API 는 백엔드 permitAll(GET) — 게스트 열람이 허용된다(SecurityConfig 실측, #30).
+ * 그래서 authed 플래그로 Bearer 부착을 호출부가 결정한다(profile.ts 와 같은 규약):
+ * 로그인 사용자는 토큰을 붙여야 "내 카드"(PRIVATE 포함) 권한이 서고, 게스트는 무토큰으로
+ * PUBLIC 만 본다. 죽은 토큰을 실어 보내지 않기 위해 기본(auth:true)에 기대지 않는다.
  */
 
 /** 등록된 리포트 1건의 로드 결과. 전송 오류는 throw → 훅이 error 로 정규화한다. */
@@ -53,16 +58,23 @@ export type CardDetailResult =
   | { status: "notFound" };
 
 /**
- * 실 UUID 카드 단건 상세 — GET /api/cards/{publicId}(인증·소유자 전용).
+ * 실 UUID 카드 단건 상세 — GET /api/cards/{publicId}.
  * mock 상세(fetchReport)와 공존한다: mock id 는 위 함수, 실 UUID 는 이 함수를 쓴다.
  * 대외 식별자는 publicId(UUID)만 사용한다(내부 순번 id 금지).
+ *
+ * 권한(service-api CardService.get 실측, #30): "내 카드 이거나 PUBLIC" 이면 열람.
+ * 남의 PRIVATE·부재·형식오류는 전부 404(존재 노출 없음) — 403 은 오지 않는다.
+ *
+ * @param authed 로그인 확정 상태면 true → Bearer 부착(내 PRIVATE 카드 열람에 필요).
+ *               게스트면 false → 무토큰 요청으로 PUBLIC 카드만 받는다.
  */
 export async function fetchCardDetail(
   publicId: string,
+  authed: boolean,
   signal?: AbortSignal,
 ): Promise<CardDetailResult> {
   try {
-    const card = await apiGet<CardResponse>(`/api/cards/${publicId}`, { signal });
+    const card = await apiGet<CardResponse>(`/api/cards/${publicId}`, { signal, auth: authed });
     return { status: "ready", card };
   } catch (err) {
     // API 404(NOT_FOUND)는 오류가 아니라 화면 상태(notFound)로 정규화. 나머지는 훅 error 로 전달.
@@ -106,9 +118,13 @@ export function normalizeReportId(reportId: string | null | undefined): string |
  *
  * 호출부 실수로 잘못된 값이 들어와도 여기서 먼저 막는다: /api/reports/undefined ·
  * /api/reports/null · 빈 id · 비 UUID 요청은 네트워크로 나가지 않고 none 으로 끝난다.
+ *
+ * @param authed 카드 상세와 같은 규약 — 로그인이면 Bearer 부착(내 리포트 권한),
+ *               게스트면 무토큰(PUBLIC 카드가 참조하는 리포트만 열람).
  */
 export async function fetchReportBody(
   reportPublicId: string | null | undefined,
+  authed: boolean,
   signal?: AbortSignal,
 ): Promise<ReportBodyResult> {
   const id = normalizeReportId(reportPublicId);
@@ -117,6 +133,7 @@ export async function fetchReportBody(
   try {
     const report = await apiGet<ReportResponse>(`/api/reports/${encodeURIComponent(id)}`, {
       signal,
+      auth: authed,
     });
     return { status: "ready", report };
   } catch (err) {

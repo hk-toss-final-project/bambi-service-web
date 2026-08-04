@@ -154,7 +154,7 @@ function ProfileBody({
         </div>
       )}
       {cards.status === "success" &&
-        cards.data.map((card) => <AuthorCardItem key={card.publicId} card={card} isSelf={isSelf} />)}
+        cards.data.map((card) => <AuthorCardItem key={card.publicId} card={card} />)}
 
       {isSelf && editOpen && (
         <ProfileEditModal profile={profile} onClose={() => setEditOpen(false)} onSaved={onEdited} />
@@ -221,22 +221,21 @@ function FollowButton({ publicId, initial }: { publicId: string; initial: Profil
 }
 
 /**
- * 공개 브리핑 카드. 상세 진입은 본인일 때만 — 타인 카드 단건 API(공개 카드 조회)가
- * 아직 없어서(GET /api/cards/{id}=내 것만) 죽은 링크를 만들지 않는다. (후속: 영현 협의)
+ * 공개 브리핑 카드. 상세 진입은 본인·타인·게스트 모두 열려 있다 (2026-08-04, service-api #30).
+ * 이 목록은 GET /api/users/{publicId}/cards — PUBLIC 카드만 내려오고(FeedService.publicCardsByAuthor
+ * 실측), GET /api/cards/{publicId} 는 "내 카드 or PUBLIC" 을 permitAll 로 열어준다 → 죽은 링크가 아니다.
+ * (이전 "본인일 때만" 제한은 타인 공개 카드 단건 API 가 없던 #30 이전 전제였다.)
+ * 좋아요 수는 표기만 한다 — 토글은 CardResponse 에 liked·likeCount 가 생긴 뒤에 붙인다.
  */
-function AuthorCardItem({ card, isSelf }: { card: AuthorCard; isSelf: boolean }) {
+function AuthorCardItem({ card }: { card: AuthorCard }) {
   const at = formatCardAt(card.createdAt);
   return (
     <article className="mb-4 rounded-[14px] border border-border bg-card px-[18px] pt-4 pb-4">
       {at && <div className="mb-2 text-xs text-muted-foreground">{at} · 공개 브리핑</div>}
       <h3 className="mb-2 text-lg leading-[1.45] font-bold tracking-[-0.01em] text-foreground">
-        {isSelf ? (
-          <Link href={`/report/${card.publicId}`} className="focus-ring rounded-[3px] hover:text-signal-ink">
-            {card.title}
-          </Link>
-        ) : (
-          card.title
-        )}
+        <Link href={`/report/${card.publicId}`} className="focus-ring rounded-[3px] hover:text-signal-ink">
+          {card.title}
+        </Link>
       </h3>
       <p className="mb-3 text-sm leading-[1.7] text-ink-mid">{card.summary}</p>
       <div className="flex items-center gap-3 border-t border-border pt-2.5 text-[12.5px] text-muted-foreground">
