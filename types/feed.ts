@@ -179,6 +179,16 @@ export type PublicFeedCardResponse = {
   summary: string;
   /** 카드 소유자 관점의 개인 추천 사유. 공개 피드 화면에서는 렌더하지 않는다(어댑터 주석 참조). */
   whyForYou: string;
+  /**
+   * 관심사 태그 — service-api #37(`28932d8`)에서 추가됐다. 서버는 `List.copyOf(card.interestTags)`
+   * 로 내려주므로 **null 이 아니라 빈 배열**이고, 발행 워커(PublishProcessingService)가 agent 발행
+   * 태그로 통째 교체한다(태그 없는 카드는 `[]`).
+   *
+   * **optional 인 이유**: 이 필드가 없는 배포본이 아직 존재한다(2026-08-05 실측: 배포·로컬 응답 모두
+   * `tags` 키 없음). 키가 없어도 화면이 깨지지 않게 optional 로 두고, 값 판별은 어댑터가 한다.
+   * 화면에 태그를 표시하지는 않는다 — 추천 후보 판정(관심사 일치)에만 쓴다.
+   */
+  tags?: string[] | null;
   /** 객체는 항상 존재. 단 publicId·username·displayName 이 동시에 null 일 수 있다. */
   author: CardAuthor;
   /** 카드 전체 좋아요 수(조회자 무관). primitive long → null 없음. */
@@ -234,6 +244,11 @@ export type PublicFeedCardVM = {
   sources: CardSourceVM[];
   /** 파싱 실패 시 빈 문자열(임의 날짜 생성 금지) — 화면은 빈 값이면 줄을 생략한다. */
   createdAtLabel: string;
+  /**
+   * 정규화된 관심사 태그(공백 제거·빈 값 제외). **화면에 표시하지 않는다** — 추천 후보 판정
+   * (내 관심사와 하나 이상 일치)에만 쓴다. 서버가 tags 를 안 주는 배포본에서는 빈 배열이다.
+   */
+  tags: string[];
 };
 
 /* ─────────────────────────────────────────────────────────────

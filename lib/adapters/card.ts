@@ -180,7 +180,24 @@ export function toPublicFeedCardVM(
     social: toPublicFeedSocial(card),
     sources: toCardSources(card.sources),
     createdAtLabel: typeof card.createdAt === "string" ? formatCreatedAt(card.createdAt) : "",
+    tags: toCardTags(card.tags),
   };
+}
+
+/**
+ * 관심사 태그 정규화 — 문자열이 아니거나 공백뿐인 항목을 버리고 trim 한 값만 남긴다.
+ * 서버가 `tags` 를 아직 안 내려주는 배포본(키 없음)이나 null 이면 빈 배열이다 →
+ * 관심사와 맞을 수 없으므로 그 카드는 추천 후보가 되지 않는다(가짜 추천 금지).
+ * 대소문자 무시 비교는 lib/feed-mix.ts 의 toTagKey 가 담당한다(표시용 원문은 그대로 보존).
+ */
+export function toCardTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const out: string[] = [];
+  for (const tag of tags) {
+    const text = normalizeText(tag);
+    if (text !== null) out.push(text);
+  }
+  return out;
 }
 
 /**
