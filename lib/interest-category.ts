@@ -29,6 +29,11 @@ export type CategoryItem = {
   score: number | null;
   /** 사용자가 직접 등록했는지(USER) agent 추론인지(INFERRED). 둘 다면 USER 로 본다. */
   source: "USER" | "INFERRED";
+  /**
+   * `DELETE /api/interests/{id}` 대상 id. USER 관심사에만 있다.
+   * AI 추론 태그(INFERRED)는 agent 소유라 지울 API 가 없으므로 null 이고, 화면도 삭제 버튼을 숨긴다.
+   */
+  interestId: number | null;
 };
 
 export type CategoryGroup = {
@@ -91,6 +96,7 @@ function mergeItems(tags: WikiTag[], interests: InterestDto[]): Map<string, Cate
       name: tag.tag,
       score: tag.score,
       source: "INFERRED",
+      interestId: null,
       explicitCategoryId: null,
     });
   }
@@ -102,6 +108,7 @@ function mergeItems(tags: WikiTag[], interests: InterestDto[]): Map<string, Cate
       name: interest.name,
       score: existing?.score ?? null,
       source: "USER",
+      interestId: interest.id,
       explicitCategoryId: interest.categoryId,
     });
   }
@@ -132,6 +139,7 @@ export function groupInterestsByCategory(
       name: item.name,
       score: item.score,
       source: item.source,
+      interestId: item.interestId,
     };
     if (bucket) bucket.push(entry);
     else buckets.set(categoryId, [entry]);

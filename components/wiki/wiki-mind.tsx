@@ -1,15 +1,20 @@
 "use client";
 
+import { useState } from "react";
+
 import { FeedSkeleton } from "@/components/home/feed-skeleton";
 import { IconAlert, IconEmptyDoc } from "@/components/ui/state-icons";
 import { StateView } from "@/components/ui/state-view";
+import { ERROR_CODES } from "@/constants/errors";
 import type { InterestTaxonomyState } from "@/hooks/use-interest-taxonomy";
 import type { WikiInterestsState } from "@/hooks/use-wiki-interests";
+import { ApiError } from "@/lib/api-client";
 import {
   groupInterestsByCategory,
   type CategoryGroup,
   type CategoryItem,
 } from "@/lib/interest-category";
+import { deleteInterest } from "@/lib/repositories/interests";
 import type { InterestDto } from "@/types/interest";
 
 /**
@@ -36,10 +41,12 @@ export function WikiMind({
   taxonomy,
   tags,
   myInterests,
+  onChanged,
 }: {
   taxonomy: InterestTaxonomyState & { refetch: () => void };
   tags: WikiInterestsState & { refetch: () => void };
   myInterests: InterestDto[] | null;
+  onChanged: () => void;
 }) {
   return (
     <section aria-label="AI가 이해한 지금의 나" className="mb-8">
@@ -51,7 +58,7 @@ export function WikiMind({
           주제별로 모아 봤어요 — 직접 추가·삭제한 관심사는 AI 추정보다 우선해요.
         </p>
 
-        <Body taxonomy={taxonomy} tags={tags} myInterests={myInterests} />
+        <Body taxonomy={taxonomy} tags={tags} myInterests={myInterests} onChanged={onChanged} />
       </div>
     </section>
   );
@@ -61,10 +68,12 @@ function Body({
   taxonomy,
   tags,
   myInterests,
+  onChanged,
 }: {
   taxonomy: InterestTaxonomyState & { refetch: () => void };
   tags: WikiInterestsState & { refetch: () => void };
   myInterests: InterestDto[] | null;
+  onChanged: () => void;
 }) {
   // 대분류 골격이 없으면 묶어서 보여줄 수 없다 → taxonomy 실패는 별도 에러로 다룬다.
   if (taxonomy.status === "error") {
@@ -115,14 +124,14 @@ function Body({
   return (
     <div className="flex flex-col gap-4">
       {visible.map((group) => (
-        <CategoryBlock key={group.id} group={group} />
+        <CategoryBlock key={group.id} group={group} onChanged={onChanged} />
       ))}
     </div>
   );
 }
 
 /** 대분류 1개 — 제목 줄 + 소속 관심사. 비어 있으면 옅게 두어 "채울 수 있는 자리"로 보이게 한다. */
-function CategoryBlock({ group }: { group: CategoryGroup }) {
+function CategoryBlock({ group, onChanged }: { group: CategoryGroup; onChanged: () => void }) {
   const empty = group.items.length === 0;
   return (
     <div className={empty ? "opacity-45" : undefined}>
@@ -143,7 +152,7 @@ function CategoryBlock({ group }: { group: CategoryGroup }) {
       ) : (
         <ul className="flex flex-col gap-1.5 pl-[22px]">
           {group.items.map((item) => (
-            <MindRow key={item.key} item={item} />
+            <MindRow key={item.key} item={item} onChanged={onChanged} />
           ))}
         </ul>
       )}
@@ -156,8 +165,28 @@ function CategoryBlock({ group }: { group: CategoryGroup }) {
  * 막대 최소 폭 8% — 0 에 가까워도 막대가 사라져 보이지 않게 한다(rail 집계와 동일 규칙).
  * 절대 수치로 오해하지 않도록 %는 표기하지 않는다.
  */
-function MindRow({ item }: { item: CategoryItem }) {
+function MindRow({ item, onChanged }: { item: CategoryItem; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const width = item.score === null ? 0 : Math.max(8, Math.round(item.score * 100));
+
+  function remove() {
+    if (busy || item.interestId === null) return;
+    setBusy(true);
+    setFailed(false);
+    deleteInterest(item.interestId)
+      .then(() => onChanged())
+      .catch((err) => {
+        // 이미 지워졌으면 목표 상태 달성 — 목록만 다시 읽어 정합시킨다(온보딩 replace 규칙과 동일).
+        if (err instanceof ApiError && err.code === ERROR_CODES.NOT_FOUND) {
+          onChanged();
+          return;
+        }
+        setFailed(true);
+      })
+      .finally(() => setBusy(false));
+  }
+
   return (
     <li className="flex items-center gap-3">
       <span className="w-32 shrink-0 truncate text-[13px] font-semibold text-foreground">
@@ -172,8 +201,28 @@ function MindRow({ item }: { item: CategoryItem }) {
           <span className="block h-full rounded-full bg-primary/70" style={{ width: `${width}%` }} />
         </span>
       )}
-      <span className="w-16 shrink-0 text-right text-[11.5px] text-muted-foreground">
+      <span className="w-14 shrink-0 text-right text-[11.5px] text-muted-foreground">
         {item.source === "USER" ? "내 관심사" : "AI 추정"}
+      </span>
+      {/* AI 추론 태그는 agent 소유라 지울 API 가 없다 → 자리만 비워 행 정렬을 맞춘다. */}
+      <span className="w-12 shrink-0 text-right">
+        {item.interestId !== null && (
+          <button
+            type="button"
+            onClick={remove}
+            disabled={busy}
+            aria-busy={busy}
+            aria-label={`${item.name} 관심사 삭제`}
+            className="focus-ring rounded-[8px] px-1.5 py-0.5 text-[11.5px] text-muted-foreground hover:text-signal-ink disabled:opacity-50"
+          >
+            삭제
+          </button>
+        )}
+        {failed && (
+          <span role="alert" className="block text-[11px] text-signal-ink">
+            실패
+          </span>
+        )}
       </span>
     </li>
   );

@@ -77,7 +77,12 @@ function WikiView() {
               </p>
             </header>
 
-            <WikiMind taxonomy={taxonomy} tags={interests} myInterests={myInterests} />
+            <WikiMind
+              taxonomy={taxonomy}
+              tags={interests}
+              myInterests={myInterests}
+              onChanged={my.refetch}
+            />
             <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
             <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
             <LlmWikiEntry />
