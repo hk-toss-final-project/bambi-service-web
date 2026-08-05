@@ -1,6 +1,6 @@
 "use client";
 
-import { ONBOARDING_INTEREST_CATALOG } from "@/constants/interests";
+import type { InterestTaxonomyCategory } from "@/types/interest";
 
 /**
  * 관심사 선택 그리드 — 목업 onboarding.html 의 .ob-cat / .ob-chips / .chip / .ob-addrow 1:1.
@@ -11,12 +11,15 @@ import { ONBOARDING_INTEREST_CATALOG } from "@/constants/interests";
  * - 직접 추가(.ob-addrow)는 점선 구분선 아래 중앙 정렬 — 버튼·안내·추가된 chip 순(목업 DOM 순서).
  */
 export function InterestPicker({
+  categories,
   customTopics,
   selected,
   disabled,
   onToggle,
   onOpenAdd,
 }: {
+  /** Service DB 활성 taxonomy Category·Topic 목록. */
+  categories: InterestTaxonomyCategory[];
   /** 사용자가 직접 추가했거나 서버에 있던 카탈로그 밖 topic 목록. */
   customTopics: string[];
   selected: ReadonlySet<string>;
@@ -27,19 +30,22 @@ export function InterestPicker({
 }) {
   return (
     <>
-      {ONBOARDING_INTEREST_CATALOG.map((category) => (
-        <fieldset key={category.label} className="mt-6">
+      {categories.map((category) => (
+        <fieldset key={category.id} className="mt-6">
           {/* .ob-cat — 13px/700, ink-mid */}
-          <legend className="mb-2.5 text-[13px] font-bold text-ink-mid">{category.label}</legend>
+          <legend className="mb-2.5 text-[13px] font-bold text-ink-mid">
+            <span aria-hidden="true">{category.emoji} </span>
+            {category.name}
+          </legend>
           {/* .ob-chips — gap 9px */}
           <div className="flex flex-wrap gap-[9px]">
             {category.topics.map((topic) => (
               <InterestChip
-                key={topic}
-                name={topic}
-                selected={selected.has(topic)}
+                key={topic.id}
+                name={topic.name}
+                selected={selected.has(topic.name)}
                 disabled={disabled}
-                onToggle={() => onToggle(topic)}
+                onToggle={() => onToggle(topic.name)}
               />
             ))}
           </div>

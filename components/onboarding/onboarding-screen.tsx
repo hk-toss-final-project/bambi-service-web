@@ -11,11 +11,10 @@ import { PageState } from "@/components/ui/page-state";
 import { IconAlert } from "@/components/ui/state-icons";
 import { StateView } from "@/components/ui/state-view";
 import { ERROR_CODES } from "@/constants/errors";
-import { ONBOARDING_CATALOG_TOPICS } from "@/constants/interests";
 import { useOnboardingInterests } from "@/hooks/use-onboarding-interests";
 import { ApiError } from "@/lib/api-client";
 import { replaceUserInterests } from "@/lib/repositories/interests";
-import type { InterestDto } from "@/types/interest";
+import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
 
 /**
  * 관심사 온보딩 — /onboarding. 신규 가입 자동 로그인 성공 직후 진입한다(signup-form).
@@ -25,7 +24,7 @@ import type { InterestDto } from "@/types/interest";
  * - 관심사 **최소 1개 필수** — 건너뛰기 없음. 0개면 제출 CTA 비활성.
  * - 여기서 고른 관심사는 사용자가 직접 설정한 값(source=USER, 서버가 강제).
  *   agent 자동 추론 태그(INFERRED · /api/wiki/tags)는 조회·저장 어느 쪽에도 섞지 않는다.
- * - **관심사 저장은 저장일 뿐 보고서 생성이 아니다** — 완료 화면은 첫 브리핑 시점을 약속하지 않는다.
+ * - 저장이 Agent Context에 반영되면 첫 Topic 리포트가 비동기 등록되며 완료 알림은 홈 Inbox로 온다.
  * - 실제 저장(replaceUserInterests) 성공 후에만 완료 화면으로 넘어간다.
  *
  * 인증 상태 4분기(설정·홈과 동일 패턴): loading→스켈레톤 / error→복원오류 / guest→접근제한 / authenticated→본문.
@@ -47,7 +46,7 @@ function OnboardingView() {
   if (interests.status === "loading") return <OnboardingSkeleton />;
   // 조회 실패는 "선택 0개"로 위장하지 않는다 — 별도 오류 상태 + 재시도.
   if (interests.status === "error") return <OnboardingLoadError onRetry={interests.refetch} />;
-  return <OnboardingFlow initial={interests.data} />;
+  return <OnboardingFlow initial={interests.data.interests} taxonomy={interests.data.taxonomy} />;
 }
 
 /**
@@ -62,7 +61,19 @@ function resolveInterestSaveError(code: string): string {
 
 type OnboardingStep = "pick" | "done";
 
-function OnboardingFlow({ initial }: { initial: InterestDto[] }) {
+function OnboardingFlow({
+  initial,
+  taxonomy,
+}: {
+  initial: InterestDto[];
+  taxonomy: InterestTaxonomyDto;
+}) {
+  const catalogTopics = new Map(
+    taxonomy.categories.flatMap((category) =>
+      category.topics.map((topic) => [topic.name, topic] as const),
+    ),
+  );
+  const catalogTopicNames = new Set(catalogTopics.keys());
   const [step, setStep] = useState<OnboardingStep>("pick");
   /** 서버 스냅샷(USER 관심사) — 저장 diff 의 기준. 저장 성공 시 확정본으로 갱신. */
   const [current, setCurrent] = useState<InterestDto[]>(initial);
@@ -70,7 +81,7 @@ function OnboardingFlow({ initial }: { initial: InterestDto[] }) {
   const [selected, setSelected] = useState<string[]>(() => initial.map((i) => i.name));
   /** 카탈로그 밖 topic(직접 추가 + 서버에 있던 것) — "직접 추가" 그룹에 표시. */
   const [customTopics, setCustomTopics] = useState<string[]>(() =>
-    initial.map((i) => i.name).filter((name) => !ONBOARDING_CATALOG_TOPICS.has(name)),
+    initial.map((i) => i.name).filter((name) => !catalogTopicNames.has(name)),
   );
   /** 저장 성공 후 서버 확정본 — 완료 화면 요약은 이 값만 신뢰한다. */
   const [saved, setSaved] = useState<InterestDto[]>([]);
@@ -91,7 +102,7 @@ function OnboardingFlow({ initial }: { initial: InterestDto[] }) {
   /** 직접 추가 — 카탈로그에 있으면 선택만, 없으면 custom 그룹에 추가 후 선택. API 호출 없음(저장은 제출에서). */
   function handleAdd(name: string) {
     setSaveError(null);
-    if (!ONBOARDING_CATALOG_TOPICS.has(name)) {
+    if (!catalogTopicNames.has(name)) {
       setCustomTopics((prev) => (prev.includes(name) ? prev : [...prev, name]));
     }
     setSelected((prev) => (prev.includes(name) ? prev : [...prev, name]));
@@ -105,8 +116,14 @@ function OnboardingFlow({ initial }: { initial: InterestDto[] }) {
     setSaveError(null);
     setSubmitting(true);
     try {
-      // 선택 결과를 서버로 동기화(추가 POST → 삭제 DELETE → 확정 GET). 보고서 생성은 트리거하지 않는다.
-      const canonical = await replaceUserInterests(selected, current);
+      const selections = selected.map((name) => {
+        const topic = catalogTopics.get(name);
+        return topic
+          ? { name, taxonomyVersion: taxonomy.version, topicId: topic.id }
+          : { name };
+      });
+      // 선택 결과를 서버로 동기화하면 Agent가 첫 Topic 리포트를 비동기로 등록한다.
+      const canonical = await replaceUserInterests(selections, current);
       const canonicalNames = canonical.map((i) => i.name);
       setCurrent(canonical);
       setSaved(canonical);
@@ -115,7 +132,7 @@ function OnboardingFlow({ initial }: { initial: InterestDto[] }) {
       setCustomTopics((prev) => {
         const merged = [...prev];
         for (const name of canonicalNames) {
-          if (!ONBOARDING_CATALOG_TOPICS.has(name) && !merged.includes(name)) merged.push(name);
+          if (!catalogTopicNames.has(name) && !merged.includes(name)) merged.push(name);
         }
         return merged;
       });
@@ -204,6 +221,7 @@ function OnboardingFlow({ initial }: { initial: InterestDto[] }) {
               </p>
 
               <InterestPicker
+                categories={taxonomy.categories}
                 customTopics={customTopics}
                 selected={selectedSet}
                 disabled={submitting}

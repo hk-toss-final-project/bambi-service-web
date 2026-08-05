@@ -4,8 +4,9 @@ import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { useAsyncData } from "@/hooks/use-async-data";
+import { fetchInterestTaxonomy } from "@/lib/repositories/interest-taxonomy";
 import { fetchUserInterests } from "@/lib/repositories/interests";
-import type { InterestDto } from "@/types/interest";
+import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
 
 /**
  * 온보딩 관심사 조회 훅 — member 전용. repository seam(fetchUserInterests)만 소비한다.
@@ -18,14 +19,25 @@ import type { InterestDto } from "@/types/interest";
  */
 export type OnboardingInterestsState =
   | { status: "loading" }
-  | { status: "ready"; data: InterestDto[] }
+  | { status: "ready"; data: OnboardingInterestData }
   | { status: "error" };
+
+export type OnboardingInterestData = {
+  interests: InterestDto[];
+  taxonomy: InterestTaxonomyDto;
+};
 
 export function useOnboardingInterests(): OnboardingInterestsState & { refetch: () => void } {
   const { status } = useAuth();
   const enabled = status === "authenticated";
-  const fetcher = useCallback((signal: AbortSignal) => fetchUserInterests(signal), []);
-  const state = useAsyncData<InterestDto[]>(fetcher, enabled);
+  const fetcher = useCallback(async (signal: AbortSignal) => {
+    const [interests, taxonomy] = await Promise.all([
+      fetchUserInterests(signal),
+      fetchInterestTaxonomy(signal),
+    ]);
+    return { interests, taxonomy };
+  }, []);
+  const state = useAsyncData<OnboardingInterestData>(fetcher, enabled);
 
   if (state.status === "success") return { status: "ready", data: state.data, refetch: state.refetch };
   if (state.status === "error") return { status: "error", refetch: state.refetch };

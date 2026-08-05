@@ -1,6 +1,6 @@
 import { ERROR_CODES, FALLBACK_ERROR_CODE } from "@/constants/errors";
-import { ApiError, apiGet, apiPost, request } from "@/lib/api-client";
-import type { InterestDto } from "@/types/interest";
+import { ApiError, apiGet, apiPost, apiPut, request } from "@/lib/api-client";
+import type { InterestDto, InterestSelection } from "@/types/interest";
 
 /**
  * 관심사 repository — 화면 훅과 Service API 사이의 단일 seam.
@@ -32,9 +32,22 @@ export async function fetchUserInterests(signal?: AbortSignal): Promise<Interest
   return data.filter((interest) => interest.source === "USER");
 }
 
-/** 관심사 1건 생성 (source=USER 는 서버가 강제). name 은 호출부에서 trim 해 넘긴다. */
-export function createInterest(name: string, signal?: AbortSignal): Promise<InterestDto> {
-  return apiPost<InterestDto>(INTERESTS_PATH, { name }, { signal });
+/** 관심사 1건 생성. taxonomy 선택은 안정 ID를, 직접 추가는 name만 보낸다. */
+export function createInterest(
+  input: string | InterestSelection,
+  signal?: AbortSignal,
+): Promise<InterestDto> {
+  const selection = typeof input === "string" ? { name: input } : input;
+  return apiPost<InterestDto>(INTERESTS_PATH, selection, { signal });
+}
+
+/** 기존 같은 이름의 직접 관심사를 taxonomy 선택으로 승격할 때 메타데이터를 갱신한다. */
+export function updateInterest(
+  id: number,
+  selection: InterestSelection,
+  signal?: AbortSignal,
+): Promise<InterestDto> {
+  return apiPut<InterestDto>(`${INTERESTS_PATH}/${id}`, selection, { signal });
 }
 
 /** 관심사 1건 삭제 (soft delete). */
@@ -65,16 +78,24 @@ export async function syncUserInterests(signal?: AbortSignal): Promise<void> {
  * 오류를 안내하고 재시도를 받는다. 관심사 저장은 저장일 뿐, 보고서 생성을 트리거하지 않는다.
  */
 export async function replaceUserInterests(
-  names: string[],
+  selections: InterestSelection[],
   current: InterestDto[],
 ): Promise<InterestDto[]> {
-  const target = new Set(names);
-  const existing = new Set(current.map((interest) => interest.name));
+  const target = new Set(selections.map((selection) => selection.name));
+  const existing = new Map(current.map((interest) => [interest.name, interest]));
 
-  for (const name of names) {
-    if (existing.has(name)) continue;
+  for (const selection of selections) {
+    const saved = existing.get(selection.name);
+    if (
+      saved &&
+      saved.taxonomyVersion === (selection.taxonomyVersion ?? null) &&
+      saved.topicId === (selection.topicId ?? null)
+    ) {
+      continue;
+    }
     try {
-      await createInterest(name);
+      if (saved) await updateInterest(saved.id, selection);
+      else await createInterest(selection);
     } catch (err) {
       if (!(err instanceof ApiError && err.code === ERROR_CODES.DUPLICATE_RESOURCE)) throw err;
     }
