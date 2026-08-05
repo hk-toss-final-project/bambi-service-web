@@ -127,8 +127,9 @@ function HomeView({ isMember }: { isMember: boolean }) {
             </div>
           </main>
 
-          {/* 우측 레일 — member 는 핵심 신호·추천 토픽, guest 는 가입 유도 패널 */}
-          {isMember ? <SideRight /> : <GuestSignupPanel />}
+          {/* 우측 레일 — member 는 내 보고서 현황·최근 보고서, guest 는 가입 유도 패널.
+              rail 은 위 [내 보고서] 탭과 **같은 memberFeed 상태를 공유**한다(GET /api/feed 중복 호출 없음). */}
+          {isMember ? <SideRight feed={memberFeed} /> : <GuestSignupPanel />}
         </div>
       </div>
 

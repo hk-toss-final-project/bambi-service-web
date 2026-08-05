@@ -119,16 +119,28 @@ export type BookmarkCreateData = {
 
 /**
  * 화면 카드 모델 — DTO에서 화면이 필요한 값만 옮긴 것. 어댑터(lib/adapters/card.ts)가 변환한다.
- * createdAt 은 표시용 문자열(createdAtLabel)로만 가진다.
+ * createdAt 은 표시용 문자열(createdAtLabel) + 정렬·집계용 ms 두 형태로 가진다.
  */
 export type FeedCardVM = {
   publicId: string;
   title: string;
   summary: string;
   whyForYou: string;
+  /**
+   * 카드 공개 범위 — **서버 값 그대로**다. 정상 응답에서는 항상 PUBLIC|PRIVATE 이지만(컬럼 NOT NULL
+   * + CHECK), 계약이 깨진 응답을 임의로 한쪽으로 보정하지 않기 위해 좁히지 않고 담는다.
+   * 집계하는 쪽(lib/adapters/home-rail.ts)이 "둘 중 어느 것도 아님"을 별도로 다룬다.
+   */
+  visibility: CardVisibility;
   /** 정규화된 출처만 담는다 — 빈 출처는 제외되므로 length 가 곧 표시 가능한 출처 건수다. */
   sources: CardSourceVM[];
   createdAtLabel: string;
+  /**
+   * createdAt(ISO) 파싱 결과(ms). **파싱 실패 시 null** — 대체 날짜를 만들지 않는다.
+   * 서버가 최신순으로 주지만 목록 순서에만 의존하지 않고 최신 판정을 실제 값으로 하려고 담는다
+   * (/reports 의 ArchiveCard.createdAtMs 와 같은 규율).
+   */
+  createdAtMs: number | null;
 };
 
 /* ─────────────────────────────────────────────────────────────
@@ -217,4 +229,30 @@ export type PublicFeedCardVM = {
   sources: CardSourceVM[];
   /** 파싱 실패 시 빈 문자열(임의 날짜 생성 금지) — 화면은 빈 값이면 줄을 생략한다. */
   createdAtLabel: string;
+};
+
+/* ─────────────────────────────────────────────────────────────
+   홈 우측 rail — [내 보고서](GET /api/feed) 파생 집계
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * 내 보고서 현황 — `FeedCardVM[]`(= GET /api/feed 결과) 하나만 보고 계산한 값.
+ * 별도 API 호출·별도 DTO 없이 홈이 이미 가진 목록에서만 파생한다(중복 조회 금지).
+ *
+ * `unknownVisibility` 가 있는 이유: 공개/비공개는 서버 `visibility` 값으로만 세고, 둘 중 어느
+ * 것에도 해당하지 않는 항목을 임의로 한쪽에 더하지 않는다. 그래서 계약이 깨진 응답에서는
+ * `publicCount + privateCount < total` 이 될 수 있고, 그 차이를 조용히 숨기지 않고 이 필드로 드러낸다
+ * (화면은 0 보다 클 때만 한 줄을 덧붙인다 — 정상 응답에서는 항상 0 이라 보이지 않는다).
+ */
+export type MyReportsSummary = {
+  total: number;
+  publicCount: number;
+  privateCount: number;
+  /** PUBLIC·PRIVATE 어느 쪽도 아닌 항목 수. 정상 응답에서는 0. */
+  unknownVisibility: number;
+  /**
+   * 가장 최근 보고서의 작성일 표시 문자열. 유효한 날짜가 하나도 없으면 null →
+   * 화면이 그 줄을 생략한다(임의 날짜 생성 금지).
+   */
+  latestCreatedLabel: string | null;
 };

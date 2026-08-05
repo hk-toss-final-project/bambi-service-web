@@ -52,12 +52,8 @@ export const MOCK_FEED_END = {
   rec: { title: "오늘 피드는 여기까지예요", sub: "무한 스크롤 대신, 오늘 중요한 것만 골라 보여드려요." },
 };
 
-/* ── 우측 레일 ── */
-
-export const MOCK_SIGNALS = [
-  { n: "01", title: "원/달러 환율 0.8% 하락 — 급변동 감지", meta: "#환율 · 신뢰도 높음" },
-  { n: "02", title: "오픈소스 LLM 릴리즈 2건", meta: "#AI · 신뢰도 높음" },
-  { n: "03", title: "관심 노트북 12% 할인", meta: "#쇼핑 · 3개월 최저가" },
-];
-
-export const MOCK_TOPICS = ["#미국증시", "#환테크", "#로컬LLM"];
+/* ── 우측 레일 ──
+   MOCK_SIGNALS(오늘의 핵심 신호) · MOCK_TOPICS(추천 토픽)는 2026-08-04 삭제했다.
+   대응 API 가 없어(신호 랭킹·신뢰도·토픽 추천 엔드포인트 전무) 홈 우측 rail 을 실데이터
+   「내 보고서 현황 · 최근 내 보고서」(GET /api/feed 파생)로 교체했다 — components/home/side-right.tsx.
+   신호·토픽은 백엔드 API 가 확정되면 그때 붙인다(카드 데이터를 신호·토픽으로 가공하지 않는다). */

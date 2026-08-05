@@ -91,14 +91,23 @@ export function toCardSocial(card: CardResponse): CardSocial | null {
   return { author, likeCount, liked };
 }
 
+/** createdAt(ISO) → ms. 파싱 실패 시 null(대체 값 생성 금지) — 정렬·집계용. */
+function parseCreatedAtMs(iso: string): number | null {
+  const ts = Date.parse(iso);
+  return Number.isNaN(ts) ? null : ts;
+}
+
 export function toFeedCardVM(card: CardResponse): FeedCardVM {
   return {
     publicId: card.publicId,
     title: card.title,
     summary: card.summary,
     whyForYou: card.whyForYou,
+    // 서버 값 그대로 — 없거나 예상 밖이어도 여기서 PUBLIC/PRIVATE 로 보정하지 않는다.
+    visibility: card.visibility,
     sources: toCardSources(card.sources),
     createdAtLabel: formatCreatedAt(card.createdAt),
+    createdAtMs: typeof card.createdAt === "string" ? parseCreatedAtMs(card.createdAt) : null,
   };
 }
 
