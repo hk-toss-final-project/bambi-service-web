@@ -12,7 +12,7 @@ import type { FeedCardVM } from "@/types/feed";
  * [피드] 탭(member) 데이터 훅 — GET /api/feed(인증).
  *
  * - authenticated 에서만 요청한다. guest 는 /api/feed 를 호출하지 않고, 인증 loading/error
- *   중에도 요청하지 않는다(useRecFeed 와 동일한 상태-분리 원칙 — enabled 조건만 다르다).
+ *   중에도 요청하지 않는다(usePublicFeed 와 동일한 상태-분리 원칙 — enabled 조건만 다르다).
  * - CardResponse[] → FeedCardVM[] 로 변환한다(어댑터). loading / success / empty / error + refetch 정규화.
  * - refetch 는 상위(HomeView)가 소유해 저장 성공 시 재조회에 재사용한다(§4).
  */

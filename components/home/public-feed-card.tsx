@@ -21,31 +21,28 @@ import type { PublicFeedCardVM } from "@/types/feed";
 export function PublicFeedCard({ card }: { card: PublicFeedCardVM }) {
   return (
     <article className="mb-4 rounded-[14px] border border-border bg-card px-[18px] pt-4 pb-4">
-      {/* 작성자 + 작성 시각 */}
+      {/*
+        작성자 + 작성 시각. `author.publicId` 가 UUID 로 검증됐을 때만 아바타·이름을 감싸
+        `/users/{publicId}` 공개 프로필로 이동한다(어댑터가 형식을 확인한다).
+        검증되지 않았거나 이름이 없으면 지금처럼 링크 없는 중립 표시로 남긴다 — 죽은 링크·가짜
+        이름·가짜 핸들을 만들지 않는다. 팔로우 토글은 프로필 화면에 이미 있으므로 카드에 두지 않는다.
+        제목(카드 상세)·출처(외부 링크)와 별개 영역이라 링크가 중첩되지 않는다.
+      */}
       <div className="mb-2.5 flex items-center gap-2.5">
-        <span
-          aria-hidden="true"
-          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full border border-input bg-background text-[11px] font-bold text-muted-foreground"
-        >
-          {/* 이니셜은 실제 이름에서만 파생한다. 이름이 없으면 중립 기호(장식) — 가짜 이니셜 금지. */}
-          {card.author.initial ?? "◍"}
-        </span>
-        <div className="min-w-0">
-          {card.author.name !== null ? (
-            <div className="truncate text-sm font-bold text-foreground">{card.author.name}</div>
-          ) : (
-            /* displayName·username 이 모두 없는 작성자(탈퇴·부재). 임의 이름을 만들지 않고
-               식별 불가 상태를 그대로 알린다. */
-            <div className="truncate text-sm font-bold text-muted-foreground">
-              작성자 정보 없음
-            </div>
-          )}
-          {card.createdAtLabel && (
-            <div className="mt-px truncate text-xs text-muted-foreground">
-              {card.createdAtLabel}
-            </div>
-          )}
-        </div>
+        {card.author.publicId !== null ? (
+          <Link
+            href={`/users/${card.author.publicId}`}
+            className="focus-ring group flex min-w-0 items-center gap-2.5 rounded-[10px]"
+          >
+            <AuthorAvatar initial={card.author.initial} />
+            <AuthorText name={card.author.name} createdAtLabel={card.createdAtLabel} />
+          </Link>
+        ) : (
+          <div className="flex min-w-0 items-center gap-2.5">
+            <AuthorAvatar initial={card.author.initial} />
+            <AuthorText name={card.author.name} createdAtLabel={card.createdAtLabel} />
+          </div>
+        )}
       </div>
 
       {/* 제목 — 상세 진입(/report/{publicId}). 어댑터가 UUID 형식을 검증한 값만 온다. */}
@@ -115,5 +112,39 @@ export function PublicFeedCard({ card }: { card: PublicFeedCardVM }) {
         </div>
       )}
     </article>
+  );
+}
+
+/** 아바타 — 이니셜은 실제 이름에서만 파생한다. 이름이 없으면 중립 기호(장식) — 가짜 이니셜 금지. */
+function AuthorAvatar({ initial }: { initial: string | null }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full border border-input bg-background text-[11px] font-bold text-muted-foreground"
+    >
+      {initial ?? "◍"}
+    </span>
+  );
+}
+
+/** 작성자 이름 + 작성 시각. 이름이 없으면 임의 이름을 만들지 않고 식별 불가 상태를 그대로 알린다. */
+function AuthorText({ name, createdAtLabel }: { name: string | null; createdAtLabel: string }) {
+  return (
+    <span className="min-w-0">
+      {name !== null ? (
+        /* group-hover: 는 링크로 감쌌을 때만 동작한다(비링크 케이스에서는 무해). */
+        <span className="block truncate text-sm font-bold text-foreground group-hover:text-signal-ink">
+          {name}
+        </span>
+      ) : (
+        /* displayName·username 이 모두 없는 작성자(탈퇴·부재). */
+        <span className="block truncate text-sm font-bold text-muted-foreground">
+          작성자 정보 없음
+        </span>
+      )}
+      {createdAtLabel && (
+        <span className="mt-px block truncate text-xs text-muted-foreground">{createdAtLabel}</span>
+      )}
+    </span>
   );
 }

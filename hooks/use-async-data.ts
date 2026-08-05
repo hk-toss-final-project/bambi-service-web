@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 /**
  * 공통 비동기 데이터 프리미티브 — loading / success / error + refetch.
- * 세 도메인 훅(useRecFeed·useMyReports·useReportDetail)이 공유한다.
+ * 도메인 훅(usePublicFeed·useMemberFeed·useReportDetail 등)이 공유한다.
  *
  * 설계 원칙:
  * - 의존성은 [fetcher, enabled, reload] 만 사용한다. deps 배열 펼치기·exhaustive-deps 비활성화 금지.

@@ -120,10 +120,11 @@ function HomeView({ isMember }: { isMember: boolean }) {
                 <MemberFeed feed={memberFeed} emptyState={myReportsEmptyState} />
               </div>
             )}
-            {/* [피드] — 공개 피드 실데이터(GET /api/feed/public). member·guest 가 같은 엔드포인트를 쓰고
-                렌더하는 값이 전부 공개 데이터라 guest 분기가 없다(개인 '나만 보기' 블록은 [내 보고서] 몫). */}
+            {/* [피드] — 공개 피드 실데이터(GET /api/feed/public). 로그인 사용자는 내부에서
+                추천(following=false) / 팔로잉(following=true) 범위를 고르고, 게스트는 추천만 본다
+                (팔로잉은 로그인 필수라 전환 바·요청 모두 없음). 카드가 렌더하는 값은 전부 공개 데이터다. */}
             <div role="tabpanel" id="panel-rec" aria-labelledby="tab-rec" hidden={effectiveTab !== "rec"}>
-              <FeedRec />
+              <FeedRec isMember={isMember} />
             </div>
           </main>
 

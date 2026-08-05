@@ -196,6 +196,11 @@ export type PublicFeedCardResponse = {
  * `initial` 은 name 에서 파생한 첫 글자이므로 name 이 null 이면 같이 null 이다(가짜 이니셜 금지).
  */
 export type PublicFeedAuthorVM = {
+  /**
+   * 프로필 경로(`/users/{publicId}`)에 쓸 수 있는 UUID. 형식이 아니거나 없으면 null →
+   * 화면이 링크를 만들지 않고 텍스트로만 렌더한다(죽은 링크 금지).
+   */
+  publicId: string | null;
   name: string | null;
   initial: string | null;
 };

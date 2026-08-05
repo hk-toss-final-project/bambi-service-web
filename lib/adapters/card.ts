@@ -1,4 +1,5 @@
 import { normalizeHttpUrl, normalizeText } from "@/lib/normalize";
+import { isUuid } from "@/lib/utils";
 import type {
   CardAuthor,
   CardResponse,
@@ -115,9 +116,6 @@ export function toFeedCardVM(card: CardResponse): FeedCardVM {
    공개 피드 (GET /api/feed/public) — PublicCardResponse → 화면 모델
    ───────────────────────────────────────────────────────────── */
 
-/** 서버 publicId 는 UUID 다. 상세 경로에 그대로 들어가므로 형식이 맞을 때만 링크를 만든다. */
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * 작성자 정규화 — displayName → username 순으로 **실제 값**을 고른다.
  *
@@ -125,11 +123,22 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
  * AuthorResponse 를 주는 경로가 실제로 있고(AuthorResponse.from(null), FeedService 의 탈퇴 작성자
  * TODO), 그때 "익명"·"사용자" 같은 이름을 만들어내면 존재하지 않는 사람을 화면에 그리는 셈이다.
  * 이니셜도 name 에서만 파생한다 — 이름이 없으면 이니셜도 없다.
+ *
+ * `publicId` 는 프로필 경로(`/users/{publicId}`)에 그대로 들어가므로 **UUID 형식일 때만** 담는다.
+ * 형식이 아니거나 없으면 null → 화면이 링크 없이 텍스트로만 렌더한다(죽은 링크 금지).
+ * 판정은 프로필 라우트(app/users/[publicId]/page.tsx)가 쓰는 공용 `isUuid` 와 같은 기준이다.
  */
 export function toPublicFeedAuthor(author: CardAuthor | null | undefined): PublicFeedAuthorVM {
-  if (author === null || typeof author !== "object") return { name: null, initial: null };
+  if (author === null || typeof author !== "object") {
+    return { publicId: null, name: null, initial: null };
+  }
   const name = normalizeText(author.displayName) ?? normalizeText(author.username);
-  return { name, initial: name === null ? null : Array.from(name)[0] };
+  const rawId = normalizeText(author.publicId);
+  return {
+    publicId: rawId !== null && isUuid(rawId) ? rawId : null,
+    name,
+    initial: name === null ? null : Array.from(name)[0],
+  };
 }
 
 /**
@@ -158,7 +167,7 @@ export function toPublicFeedCardVM(
   if (card === null || typeof card !== "object") return null;
 
   const publicId = normalizeText(card.publicId);
-  if (publicId === null || !UUID_PATTERN.test(publicId)) return null;
+  if (publicId === null || !isUuid(publicId)) return null;
 
   const title = normalizeText(card.title);
   if (title === null) return null;
