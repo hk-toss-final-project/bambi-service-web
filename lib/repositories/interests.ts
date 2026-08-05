@@ -9,6 +9,7 @@ import type { InterestDto } from "@/types/interest";
  * - GET    /api/interests       → InterestDto[] (createdAt desc, soft delete 제외)
  * - POST   /api/interests {name} → 201 + 생성된 InterestDto (source 항상 USER)
  * - DELETE /api/interests/{id}  → 200 (soft delete)
+ * - POST   /api/interests/sync  → 200 (확정된 USER 관심사를 agent context에 동기화)
  * - PUT(rename) 은 온보딩에서 쓰지 않는다.
  * - 이름 중복 → 409 DUPLICATE_RESOURCE ("이미 등록한 관심사입니다") · 소유자 불일치/없음 → 404 NOT_FOUND.
  * - 일괄 저장 endpoint 는 없다 → 교체는 topic 단위 DELETE/POST 로 수행한다(replaceUserInterests).
@@ -41,6 +42,11 @@ export async function deleteInterest(id: number, signal?: AbortSignal): Promise<
   await request<null>(`${INTERESTS_PATH}/${id}`, { method: "DELETE", signal });
 }
 
+/** 확정된 USER 관심사 전체를 agent의 최신 사용자 Context Snapshot에 동기화한다. */
+export async function syncUserInterests(signal?: AbortSignal): Promise<void> {
+  await request<null>(`${INTERESTS_PATH}/sync`, { method: "POST", signal });
+}
+
 /**
  * 선택 결과를 서버 상태로 동기화 — 온보딩 저장·"다시 고르기" 재저장 공통 경로.
  *
@@ -52,7 +58,8 @@ export async function deleteInterest(id: number, signal?: AbortSignal): Promise<
  * 2) current(USER)에 있는데 선택 해제된 것 → DELETE. 이미 사라진 경우(NOT_FOUND)는
  *    목표 상태(없음)가 이미 달성된 것이므로 성공으로 취급한다.
  *    → 부분 실패 후 재시도해도 같은 호출로 수렴한다(멱등).
- * 3) 마지막에 GET 으로 서버 확정본을 다시 읽어 반환한다(완료 화면은 이 값만 신뢰).
+ * 3) 마지막에 GET 으로 서버 확정본을 다시 읽고, 그 전체를 agent context에 한 번 동기화한다.
+ * 4) 완료 화면은 동기화까지 성공한 서버 확정본만 신뢰한다.
  *
  * 그 외 오류(VALIDATION_ERROR·INTERNAL_ERROR·네트워크)는 그대로 throw — 호출부가 선택을 유지한 채
  * 오류를 안내하고 재시도를 받는다. 관심사 저장은 저장일 뿐, 보고서 생성을 트리거하지 않는다.
@@ -82,5 +89,7 @@ export async function replaceUserInterests(
     }
   }
 
-  return fetchUserInterests();
+  const canonical = await fetchUserInterests();
+  await syncUserInterests();
+  return canonical;
 }
