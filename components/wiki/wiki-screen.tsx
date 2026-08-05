@@ -14,6 +14,7 @@ import { LlmWikiEntry } from "@/components/wiki/llm-wiki-entry";
 import { WikiFound } from "@/components/wiki/wiki-found";
 import { WikiMind } from "@/components/wiki/wiki-mind";
 import { WikiMyInterests } from "@/components/wiki/wiki-my-interests";
+import { useInterestTaxonomy } from "@/hooks/use-interest-taxonomy";
 import { useMyInterests, type MyInterestsState } from "@/hooks/use-my-interests";
 import { useWikiInterests, type WikiInterestsState } from "@/hooks/use-wiki-interests";
 import { MOCK_SIDE_FOOT } from "@/lib/mock/feed";
@@ -50,6 +51,7 @@ export function WikiScreen() {
  * 발견 후보 추가/삭제는 [내 관심사]만 다시 읽는다(위키 태그는 영향 없음 — 불필요한 재조회 금지).
  */
 function WikiView() {
+  const taxonomy = useInterestTaxonomy();
   const interests = useWikiInterests();
   const my = useMyInterests();
   const [amOpen, setAmOpen] = useState(false);
@@ -75,7 +77,7 @@ function WikiView() {
               </p>
             </header>
 
-            <WikiMind state={interests} />
+            <WikiMind taxonomy={taxonomy} tags={interests} myInterests={myInterests} />
             <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
             <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
             <LlmWikiEntry />

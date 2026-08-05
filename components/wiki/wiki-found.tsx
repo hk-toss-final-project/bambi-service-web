@@ -9,8 +9,12 @@ import type { WikiInterestsState } from "@/hooks/use-wiki-interests";
 import type { InterestDto } from "@/types/interest";
 import type { WikiTag } from "@/types/wiki";
 
-/** 목업 #fd-list 는 후보 2건 노출 — 실데이터도 상위 강도순으로 소수만 보여준다. */
-const FOUND_LIMIT = 4;
+/**
+ * 후보 표시 상한 — 강도순. 목업은 2건만 뒀지만 실사용에서 후보가 너무 적게 보여
+ * "AI가 파악한 범위가 좁다"는 인상을 줬다(2026-08-05 우석 지적). 한 화면에서 훑고 고를 수 있는
+ * 선에서 넉넉히 연다.
+ */
+const FOUND_LIMIT = 12;
 
 /**
  * [AI가 최근 발견한 관심사] — 목업 wiki.html .found 기준 (2026-08-05 목업 정렬).

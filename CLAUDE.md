@@ -79,6 +79,30 @@
 - confidence(신뢰도)는 이 정렬로 **[내 관심사] 일치 카드에 한해 노출**로 변경(기존 "노출 안 함" 결정 대체).
 - rail = "추론 요약"(내 관심사·AI 추론 관심사·이번 주 신규(createdAt 7일 계산)·표시 중 자료).
 
+### ⚡ 2026-08-05 범위 변경 (2차) — [AI가 이해한 지금의 나]를 taxonomy 대분류로 (우석 결정)
+
+> 위 "목업 정렬" 절의 ①(4건 상한·행 클릭 필터)과 rail 의 "표시 중 자료"를 대체한다.
+> ④ 저장 자료 섹션은 PR #40(LLM Wiki 진입 카드)이 이미 대체했다. ②③ 은 그대로 유효하다.
+
+- **상위 4건 상한(`MIND_ROW_LIMIT`) 폐지.** 파악한 관심사를 전부 보여주되 **taxonomy 대분류**
+  (`GET /api/interest-taxonomy` — 테크·IT / 비즈니스·경제 / … 8개)로 묶는다.
+  변경 이유: 4건만 보여서 무엇을 기준으로 뽑힌 4개인지 알 수 없고 파악 범위도 좁아 보였다.
+- **분류 규칙 = `lib/interest-category.ts` 단일 소스.** ① 온보딩 선택 관심사는 `InterestDto.categoryId`
+  를 그대로 쓴다 ② 직접 입력 관심사·AI 추론 태그는 **이름을 taxonomy 의 topic name·keywords 와 대조**해
+  추정한다(완전일치 → keyword 일치 → 부분 포함, 3글자 미만 후보는 부분 포함에서 제외) ③ 어디에도 안 걸리면
+  **"기타"** 로 모은다(관심사가 화면에서 사라지지 않게).
+  ⚠️ **`WikiTag.category` 는 분류에 쓰지 않는다** — agent 가 붙인 자유 문자열이라 taxonomy id 와 무관하다.
+- **🔴 현재 한계: 이름 대조로는 거의 안 맞는다** (2026-08-05 실측 20건 중 20건이 [기타]).
+  `SK하이닉스`→산업·기업 같은 판단은 세상 지식이라 문자열 대조로는 원리적으로 불가능하다.
+  → **agent 에 `GET /internal/v1/users/{id}/interests` 응답의 taxonomy topicId/categoryId 채워달라고 요청함**
+  (agent 는 `PUT /internal/v1/interest-taxonomies/{version}` 로 이미 taxonomy 를 받고 있고 `InterestItem.category`
+  필드도 있다). 응답이 오면 `resolveCategoryId` 자리에 그 값을 쓰면 되고 나머지 구조는 그대로다.
+- 그때까지 **관심사가 없는 대분류는 감춘다**(`SHOW_EMPTY_CATEGORIES = false`). 대부분이 [기타]인 상태에서
+  빈 대분류 8개를 세우면 노이즈만 커지기 때문. **agent 가 ID 를 주기 시작하면 `true` 로 되돌린다.**
+- [AI가 최근 발견한 관심사] 상한 4 → **12**(같은 이유 — 후보가 너무 적게 보였다).
+- ⚠️ **관심사 추출 입도는 별개 문제**: `정다각형`·`OpenWiki`·`API 키 발급` 같은 문서 파편이 관심사로
+  올라온다(실측). 분류를 고쳐도 남으므로 agent 쪽에서 걸러야 한다(LLM팀 요청 항목).
+
 ### ⚡ 2026-07-28 범위 변경 — 설정 화면 P1 → 구현 승인 (우석)
 
 - **`settings.html` = P1 「구현하지 않는다」 목록에서 제외.** `/settings` 로 구현한다(PR #21).
