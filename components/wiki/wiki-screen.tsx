@@ -11,7 +11,10 @@ import { SideLeft } from "@/components/home/side-left";
 import { IconAlert } from "@/components/ui/state-icons";
 import { PageState } from "@/components/ui/page-state";
 import { WikiDocuments } from "@/components/wiki/wiki-documents";
-import { WikiInterests } from "@/components/wiki/wiki-interests";
+import { WikiFound } from "@/components/wiki/wiki-found";
+import { WikiMind } from "@/components/wiki/wiki-mind";
+import { WikiMyInterests } from "@/components/wiki/wiki-my-interests";
+import { useMyInterests, type MyInterestsState } from "@/hooks/use-my-interests";
 import { useWikiDocuments, type WikiDocumentsState } from "@/hooks/use-wiki-documents";
 import { useWikiInterests, type WikiInterestsState } from "@/hooks/use-wiki-interests";
 import { MOCK_SIDE_FOOT } from "@/lib/mock/feed";
@@ -19,6 +22,13 @@ import { filterWikiDocuments } from "@/lib/wiki";
 import type { WikiTag } from "@/types/wiki";
 
 const WIKI_MENU_LABEL = "관심사 · LLM Wiki";
+
+/**
+ * "이번 주 신규" 계산 기준 시각 — 렌더 중 Date.now() 호출은 react 컴파일러 규칙 위반이라
+ * 모듈 로드 시점에 한 번만 고정한다(주 단위 판정이라 페이지 수명 동안의 오차는 무시 가능).
+ */
+const LOADED_AT_MS = Date.now();
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * 관심사 · LLM Wiki — member 전용 화면(§15 개인 데이터). 인증 상태 4분기로 진입을 제어한다.
@@ -36,9 +46,15 @@ export function WikiScreen() {
   return <WikiView />;
 }
 
-/** 실제 본문 — authenticated 에서만 도달. 관심 태그 선택으로 하단 자료를 필터한다. */
+/**
+ * 실제 본문 — authenticated 에서만 도달. 목업 wiki.html 순서(2026-08-05 정렬):
+ * ① AI가 이해한 지금의 나(강도 바, 클릭=하단 자료 필터) ② AI가 최근 발견한 관심사(＋추가)
+ * ③ 내 관심사(USER 목록 관리) ④ 내가 저장한 자료(기존 유지 — 07-27 정보구조가 목업보다 우선).
+ * 발견 후보 추가/삭제는 [내 관심사]만 다시 읽는다(위키 태그·자료는 영향 없음 — 불필요한 재조회 금지).
+ */
 function WikiView() {
   const interests = useWikiInterests();
+  const my = useMyInterests();
   const documents = useWikiDocuments();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [amOpen, setAmOpen] = useState(false);
@@ -48,6 +64,9 @@ function WikiView() {
     interests.status === "success"
       ? (interests.data.find((t) => t.tagId === selectedId) ?? null)
       : null;
+
+  const wikiTags = interests.status === "success" ? interests.data : null;
+  const myInterests = my.status === "success" ? my.data : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,15 +82,17 @@ function WikiView() {
                 관심사 · LLM Wiki
               </h1>
               <p className="mt-1 text-[13.5px] leading-[1.6] text-ink-mid">
-                AI가 이해한 관심사와 그 근거가 된 자료를 확인해요.
+                AI가 나를 어떻게 이해하고 있는지 확인하고, 다르게 이해한 부분은 직접 고쳐주세요.
               </p>
             </header>
 
-            <WikiInterests
+            <WikiMind
               state={interests}
               selectedId={selectedId}
               onSelect={(id) => setSelectedId((cur) => (cur === id ? null : id))}
             />
+            <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
+            <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
             <WikiDocuments
               state={documents}
               selectedTag={selectedTag}
@@ -79,11 +100,11 @@ function WikiView() {
             />
           </main>
 
-          <WikiRail interests={interests} documents={documents} selectedTag={selectedTag} />
+          <WikiRail interests={interests} my={my} documents={documents} selectedTag={selectedTag} />
         </div>
       </div>
 
-      {/* 저장 성공 시 관심사·자료를 재조회(§4 refetch 패턴). 후보 추가/무시·CRUD·Agent 직접 호출은 범위 밖. */}
+      {/* 저장 성공 시 위키 관심사·자료를 재조회(§4 refetch 패턴). Agent 직접 호출은 하지 않는다. */}
       <AddMaterialModal
         open={amOpen}
         onClose={() => setAmOpen(false)}
@@ -96,17 +117,32 @@ function WikiView() {
   );
 }
 
-/** 우측 레일 — 파생 가능한 수치만 표시한다(활성/비활성 등 미제공 필드는 만들지 않는다). */
+/**
+ * 우측 레일 — 목업 "추론 요약" 패널. 파생 가능한 수치만 표시한다
+ * (목업의 활성/비활성·제외한 주제는 대응 백엔드가 없어 만들지 않는다).
+ * "이번 주 신규" = 내 관심사 createdAt 이 최근 7일 이내인 것(클라이언트 계산).
+ */
 function WikiRail({
   interests,
+  my,
   documents,
   selectedTag,
 }: {
   interests: WikiInterestsState;
+  my: MyInterestsState;
   documents: WikiDocumentsState;
   selectedTag: WikiTag | null;
 }) {
-  const interestCount = interests.status === "success" ? interests.data.length : null;
+  const myCount = my.status === "success" ? my.data.length : null;
+  const newThisWeek =
+    my.status === "success"
+      ? my.data.filter((interest) => {
+          const ts = Date.parse(interest.createdAt);
+          return Number.isFinite(ts) && LOADED_AT_MS - ts <= WEEK_MS;
+        }).length
+      : null;
+  const inferredCount =
+    interests.status === "success" ? interests.data.length : interests.status === "empty" ? 0 : null;
   const visibleDocCount =
     documents.status === "success"
       ? filterWikiDocuments(documents.data, selectedTag).length
@@ -115,8 +151,10 @@ function WikiRail({
   return (
     <aside className="sticky top-4 flex w-[300px] shrink-0 flex-col gap-3.5 max-[1240px]:hidden">
       <div className="rounded-[14px] border border-border bg-card px-4 py-[15px]">
-        <h4 className="mb-[15px] text-[13px] font-bold text-foreground">Wiki 요약</h4>
-        <RailStat label="파악한 관심사" value={interestCount} />
+        <h4 className="mb-[15px] text-[13px] font-bold text-foreground">추론 요약</h4>
+        <RailStat label="내 관심사" value={myCount} />
+        <RailStat label="AI 추론 관심사" value={inferredCount} />
+        <RailStat label="이번 주 신규" value={newThisWeek} />
         <RailStat label={selectedTag ? "이 관심사 자료" : "표시 중 자료"} value={visibleDocCount} />
       </div>
     </aside>

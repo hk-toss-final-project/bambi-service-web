@@ -70,12 +70,15 @@ export type WikiDocumentsData = {
  * - documentIds: Wiki 문서(documentId)와 조인하는 키.
  * - reasonMessages: evidence.reasons 중 노출 허용 코드만 골라 한글 문구로 바꾼 결과(constants/wiki.ts).
  *   부정 신호·미상 코드는 제외되므로 비어 있을 수 있고, 그때는 근거 줄을 렌더하지 않는다.
+ * - confidence: 0~1. 목업 정렬(2026-08-05)로 [내 관심사] 카드의 "신뢰도 N%" 표기에 쓴다
+ *   (LLM 추론과 일치하는 관심사에만 병기 — 기존 "노출 안 함" 결정을 목업 우선으로 변경).
  */
 export type WikiTag = {
   tagId: string;
   tag: string;
   category: string | null;
   score: number;
+  confidence: number;
   documentIds: string[];
   reasonMessages: string[];
 };

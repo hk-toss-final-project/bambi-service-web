@@ -62,6 +62,7 @@ export function toWikiTags(items: WikiTagDto[]): WikiTag[] {
       tag,
       category: toNullableText(item.category),
       score: toFiniteNumber(item.score, 0),
+      confidence: toFiniteNumber(item.confidence, 0),
       documentIds: toStringList(item.documentIds),
       reasonMessages: toReasonMessages(item.evidence),
     });
