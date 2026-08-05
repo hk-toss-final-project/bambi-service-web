@@ -23,6 +23,8 @@ import { MOCK_FEED_END } from "@/lib/mock/feed";
  * 내부 전환은 외곽 [내 보고서]/[피드] 탭 바(`.tabs`: 14.5px·4px 언더라인·sticky 카드)보다
  * 한 단계 약한 handoff `.chip` 패턴(pill·12.5~13.5px·radius 999px)을 쓴다. 선택 상태는 기존
  * `.chip.on` 토큰(`bg-wash`·`border-primary`·`text-signal-ink`)만 사용하고 새 강조색을 만들지 않는다.
+ * 구조는 탭 위젯이 아니라 토글 버튼 묶음이다(`role="group"` + 각 버튼 `aria-pressed`) — 활성 범위
+ * 본문만 렌더하므로 비활성 탭이 가리킬 tabpanel 이 없기 때문이다.
  *
  * 상태 분기(success / empty / error)는 목업 variants/home-feed-states.html 기준을 유지한다.
  * 인증 복구 로딩은 상위(home-screen HomeSkeleton)가, 데이터 로딩은 여기 FeedSkeleton 이 담당한다.
@@ -39,11 +41,13 @@ export function FeedRec({ isMember = false }: { isMember?: boolean }) {
   return (
     <div>
       {isMember && (
-        <div
-          role="tablist"
-          aria-label="공개 피드 범위"
-          className="mb-3.5 flex gap-2 px-0.5"
-        >
+        /*
+          탭 위젯이 아니라 **토글 버튼 2개 묶음**이다. 활성 범위의 본문만 DOM 에 있어서
+          tab/tabpanel 로 만들면 비활성 탭의 aria-controls 가 존재하지 않는 id 를 가리킨다
+          → role="group" + aria-label 로 묶음 이름만 주고, 선택 상태는 각 버튼의 aria-pressed 로
+          전달한다(색상 외 전달 수단 유지).
+        */
+        <div role="group" aria-label="공개 피드 범위" className="mb-3.5 flex gap-2 px-0.5">
           <ScopeChip
             scope="recommended"
             active={effectiveScope === "recommended"}
@@ -61,13 +65,11 @@ export function FeedRec({ isMember = false }: { isMember?: boolean }) {
         </div>
       )}
 
-      <div
-        role={isMember ? "tabpanel" : undefined}
-        id={isMember ? `scope-panel-${effectiveScope}` : undefined}
-        aria-labelledby={isMember ? `scope-tab-${effectiveScope}` : undefined}
-      >
-        <ScopeFeed scope={effectiveScope} result={result} onSelectRecommended={() => setScope("recommended")} />
-      </div>
+      <ScopeFeed
+        scope={effectiveScope}
+        result={result}
+        onSelectRecommended={() => setScope("recommended")}
+      />
     </div>
   );
 }
@@ -150,7 +152,10 @@ function ScopeFeed({
 /**
  * 범위 전환 chip — handoff `.chip`(pill, radius 999px, 13.5px/600, border line-strong) 기준.
  * 선택 상태는 `.chip.on`(bg wash · border signal · text signal-ink) 토큰만 쓴다.
- * 실제 `button` + `role="tab"` + `aria-selected` 로 외곽 탭과 같은 접근성 패턴을 따른다.
+ *
+ * 접근성: 평범한 `button` 의 눌림 상태(`aria-pressed`)로 선택을 전달한다. tab 역할을 쓰지 않는
+ * 이유는 상위 주석 참조 — 활성 범위 본문만 렌더하므로 가리킬 tabpanel 이 하나뿐이다.
+ * Enter/Space 는 native button 기본 동작이라 별도 키 처리가 없다.
  */
 function ScopeChip({
   scope,
@@ -166,10 +171,8 @@ function ScopeChip({
   return (
     <button
       type="button"
-      role="tab"
-      id={`scope-tab-${scope}`}
-      aria-selected={active}
-      aria-controls={`scope-panel-${scope}`}
+      id={`scope-btn-${scope}`}
+      aria-pressed={active}
       onClick={onSelect}
       className={`focus-ring inline-flex items-center rounded-full border px-3.5 py-[7px] text-[13px] font-semibold whitespace-nowrap transition-colors ${
         active
