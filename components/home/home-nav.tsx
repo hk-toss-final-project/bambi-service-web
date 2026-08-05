@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth/use-auth";
 import { useRequireAuth } from "@/components/auth/use-require-auth";
 import { Orb } from "@/components/brand/orb";
 import { MobileNavDrawer } from "@/components/home/mobile-navigation";
+import { NotificationMenu } from "@/components/home/notification-menu";
 import { MOCK_NAV } from "@/lib/mock/feed";
 
 /**
@@ -131,25 +132,7 @@ function MemberNavRight({ onAddOpen }: { onAddOpen: () => void }) {
         ＋<span className="max-[520px]:hidden"> 관심 자료</span>
       </button>
 
-      {/* .nav-ico — 알림, P1 시각 전용 */}
-      <button
-        type="button"
-        aria-disabled="true"
-        aria-label="알림"
-        title="알림"
-        className="focus-ring relative flex h-[38px] w-[38px] items-center justify-center rounded-full border border-border bg-card text-[15px] text-ink-mid"
-      >
-        <svg
-          viewBox="0 0 16 16"
-          aria-hidden="true"
-          className="h-[17px] w-[17px] fill-none stroke-current [stroke-width:1.6]"
-        >
-          <path d="M8 2c-1.6 0-2.8 1.3-2.8 2.9 0 2.8-1.1 4.1-1.9 4.8h9.4c-.8-.7-1.9-2-1.9-4.8C10.8 3.3 9.6 2 8 2z" strokeLinejoin="round" />
-          <path d="M6.6 12.2a1.5 1.5 0 0 0 2.8 0" strokeLinecap="round" />
-        </svg>
-        {/* .badge */}
-        <span className="absolute top-0.5 right-[3px] h-[7px] w-[7px] rounded-full border-2 border-card bg-primary" />
-      </button>
+      <NotificationMenu />
 
       <AvatarMenu />
     </>
