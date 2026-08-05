@@ -59,10 +59,10 @@ export function FeedRec() {
         <PublicFeedCard key={card.publicId} card={card} />
       ))}
 
-      {/* .feed-end — 서버가 커서·offset 없이 최신 N건만 주므로(무한 스크롤 불가) 이 문구는 계약과 일치한다. */}
-      <div className="px-2.5 pt-5 pb-1.5 text-center text-muted-foreground">
-        <div className="mb-1 text-[13.5px] font-bold text-ink-mid">{MOCK_FEED_END.rec.title}</div>
-        <div className="text-[12.5px] leading-[1.6]">{MOCK_FEED_END.rec.sub}</div>
+      {/* .feed-end — 제목 한 줄만 둔다. 보조 문구를 없앤 만큼 위 여백(20px→16px)과 제목 아래
+          margin(4px)을 걷어 한 줄에 맞는 간격으로 정리한다(handoff 하단 6px 은 유지). */}
+      <div className="px-2.5 pt-4 pb-1.5 text-center">
+        <div className="text-[13.5px] font-bold text-ink-mid">{MOCK_FEED_END.rec.title}</div>
       </div>
     </div>
   );

@@ -18,7 +18,8 @@ import { pickRecentReports, toMyReportsSummary } from "@/lib/adapters/home-rail"
  *
  * 디자인: handoff `product-components.css` 의 `.rpanel`(bg-card·border·radius 14·px-4 py-[15px]) ·
  * `.rpanel h4`(13px/700) · `.rstat`(label↔값, 12.5px, border-t, 첫 행 border 없음) ·
- * `.rrelated`(아이콘 + 제목/메타, border-t) 를 따른다. 300px 폭 · sticky · ≤1240px 숨김은 기존 정책 유지.
+ * `.rrelated`(아이콘 + 제목/메타, border-t) 를 따른다. 300px 폭 · sticky · 1240px 미만 숨김은 기존 정책 유지
+ * (Tailwind v4 가 `max-[1240px]:hidden` 을 `@media not (min-width: 1240px)` 로 컴파일 → 1240px 에서는 노출).
  */
 export function SideRight({ feed }: { feed: MemberFeedState & { refetch: () => void } }) {
   return (

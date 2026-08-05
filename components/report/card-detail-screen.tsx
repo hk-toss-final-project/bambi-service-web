@@ -77,16 +77,28 @@ function CardDetailView({ card, guest }: { card: CardResponse; guest: boolean })
           <SideLeft footLines={[]} guest={guest} />
 
           <main className="min-w-0 max-w-[760px] flex-1">
-            {/* .readbar — 뒤로가기만(보관/공유/MD 는 실 카드 미지원 → 두지 않음) */}
-            <div className="sticky top-4 z-20 mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-[9px] shadow-[var(--shadow)]">
-              <Link
-                href="/"
-                className="focus-ring flex items-center gap-2 rounded-[6px] text-[13.5px] font-semibold whitespace-nowrap text-ink-mid hover:text-signal-ink"
-              >
-                <span className="text-muted-foreground">←</span>
+            {/*
+              .readbar — 뒤로가기만(보관/공유/MD 는 실 카드 미지원 → 두지 않음).
+
+              목업(report-detail.html)의 readbar 는 padding 9px 12px 이고, **두께는 내부
+              `.btn`(height:32px)이 만든다**. 이 화면에는 그 버튼들이 없어 같은 padding 이어도
+              한 줄 높이(약 40px)로 주저앉아 입력창처럼 보였다 → 링크 콘텐츠에 목업 버튼과 같은
+              32px 높이를 줘 목업과 동일한 두께(32 + 9·2 + 보더 2 = 52px)로 맞춘다.
+
+              카드 전체가 Link 라 어디를 눌러도 홈으로 간다(기존 border·bg-card·rounded·shadow·
+              hover·focus-ring 유지, 새 강조색 없음).
+            */}
+            <Link
+              href="/"
+              className="focus-ring sticky top-4 z-20 mb-4 flex items-center rounded-xl border border-border bg-card px-3 py-[9px] text-[13.5px] font-semibold whitespace-nowrap text-ink-mid shadow-[var(--shadow)] hover:text-signal-ink"
+            >
+              <span className="flex min-h-8 items-center gap-2">
+                <span aria-hidden="true" className="text-muted-foreground">
+                  ←
+                </span>
                 홈 피드로
-              </Link>
-            </div>
+              </span>
+            </Link>
 
             {/* .dcard */}
             <article className="mb-4 rounded-2xl border border-border bg-card px-[30px] py-[26px]">
