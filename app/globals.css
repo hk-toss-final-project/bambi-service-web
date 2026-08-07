@@ -22,6 +22,9 @@
   --color-wash: var(--wash);
   --color-wash-strong: var(--wash-strong);
   --color-ok: var(--ok);
+  --color-wiki-entity: var(--wiki-entity);
+  --color-wiki-concept: var(--wiki-concept);
+  --color-wiki-related: var(--wiki-related);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -117,6 +120,9 @@
   --today-line: #E6E8EC;           /* --today-line */
   --img: #EEF0F3;                  /* --img        : 이미지 영역 배경 */
   --ok: #1F8A54;                   /* --ok         : 긍정 상태(공개 배지 등) */
+  --wiki-entity: #278C78;          /* Wiki Entity : 밝은 배경용 teal */
+  --wiki-concept: #7657D6;         /* Wiki Concept: 밝은 배경용 violet */
+  --wiki-related: #8B78F6;         /* 선택 Node와 직접 연결된 Node·Edge */
   /* 목업 전용 추가 토큰 — 카드 상세에서 사용 */
   --ok-dot: #34A66A;               /* --ok-dot     : 출처 신뢰도 높음 점 */
   --mid: #D89A2B;                  /* --mid        : 출처 신뢰도 중간 점 */
@@ -177,6 +183,9 @@
   --today-line: #2C323C;           /* --today-line (dark) */
   --img: #20242C;                  /* --img (dark) */
   --ok: #43C088;                   /* --ok (dark) */
+  --wiki-entity: #62D4BD;          /* Agent Wiki Graph --entity */
+  --wiki-concept: #A990FF;         /* Agent Wiki Graph --concept */
+  --wiki-related: #AAA0DF;         /* Agent Wiki Graph neighbor stroke */
   --ok-dot: #43C088;               /* --ok-dot (dark) */
   --mid: #E0B44E;                  /* --mid (dark) */
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.32); /* --shadow (dark) */

@@ -1,7 +1,7 @@
 "use client";
 
 import { IconAlert } from "@/components/ui/state-icons";
-import type { MyReport, ReportKind } from "@/types/report";
+import type { MyReport, TrackableReportType } from "@/types/report";
 
 /**
  * 홈 [내 보고서] "생성 실패(ERROR)" 카드 — 개별 보고서 생성이 실패했을 때만 노출한다.
@@ -18,7 +18,7 @@ export function FailedReports({ reports }: { reports: MyReport[] }) {
   return (
     <section aria-label="생성에 실패한 보고서" className="mb-4 flex flex-col gap-2.5">
       {reports.map((report) => (
-        <ErrorSlot key={report.id} kind={report.kind} />
+        <ErrorSlot key={report.id} reportType={report.reportType} />
       ))}
     </section>
   );
@@ -28,17 +28,20 @@ export function FailedReports({ reports }: { reports: MyReport[] }) {
  * 유형별 실패 안내 — heading(무슨 생성이 실패했는지) + subtext(다음에 어떻게 되는지).
  * 재시도 버튼 대신 "다음 브리핑에서 다시 준비" 같은 자연 복구 안내만 둔다(재시도 API 미확정).
  */
-const ERROR_COPY: Record<ReportKind, { heading: string; subtext: string }> = {
+const ERROR_COPY: Record<TrackableReportType, { heading: string; subtext: string }> = {
   ON_DEMAND: { heading: "관심 자료 분석을 완료하지 못했어요", subtext: "잠시 후 다시 확인해 주세요." },
-  DAILY: { heading: "오늘의 아침 브리핑을 만들지 못했어요", subtext: "다음 브리핑에서 다시 준비할게요." },
+  MORNING_BRIEFING: {
+    heading: "오늘의 아침 브리핑을 만들지 못했어요",
+    subtext: "다음 브리핑에서 다시 준비할게요.",
+  },
 };
 
 /**
  * 생성 실패 카드 1건 — PREPARING 슬롯과 같은 카드 골격을 쓰되, 회전 Orb 대신 정적 경고 아이콘 + 중립 "생성 실패" 배지.
  * READY 상세 카드처럼 보이지 않도록 링크·버튼을 두지 않고, 가짜 진행률·성공한 듯한 썸네일도 넣지 않는다.
  */
-function ErrorSlot({ kind }: { kind: ReportKind }) {
-  const copy = ERROR_COPY[kind];
+function ErrorSlot({ reportType }: { reportType: TrackableReportType }) {
+  const copy = ERROR_COPY[reportType];
   return (
     <article className="rounded-[14px] border border-border bg-card px-[18px] py-4">
       <div className="flex items-start gap-3">

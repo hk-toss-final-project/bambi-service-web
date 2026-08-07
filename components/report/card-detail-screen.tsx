@@ -14,6 +14,7 @@ import { StateView } from "@/components/ui/state-view";
 import { CardComments } from "@/components/report/card-comments";
 import { CardLikeButton } from "@/components/report/card-like-button";
 import { CardShareModal } from "@/components/report/card-share-modal";
+import { ReportTypeBadge } from "@/components/report/report-type-badge";
 import { useCardDetail } from "@/hooks/use-card-detail";
 import { useCopyCardLink } from "@/hooks/use-copy-card-link";
 import { useReportBody, type ReportBodyState } from "@/hooks/use-report-body";
@@ -169,8 +170,17 @@ function CardDetailView({
 
             {/* .dcard */}
             <article className="mb-4 rounded-2xl border border-border bg-card px-[30px] py-[26px]">
-              {vm.createdAtLabel && (
-                <div className="mb-2 text-xs text-muted-foreground">{vm.createdAtLabel}</div>
+              {/*
+                생성 종류 + 작성 시각 한 줄. 종류 배지는 **내 보고서에만** 의미가 있으므로
+                소유자에게만 렌더한다 — 이 화면은 소유자와 공개 카드 열람자(타인·게스트)가 같은
+                컴포넌트를 공유하는 유일한 자리라, 게이트 없이 두면 남의 카드에 배지가 노출된다.
+                값이 없으면 배지가 스스로 사라지고 기존 날짜 줄만 남는다(레이아웃 동일).
+              */}
+              {(owner || vm.createdAtLabel) && (
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {owner && <ReportTypeBadge reportType={vm.reportType} />}
+                  {vm.createdAtLabel && <span>{vm.createdAtLabel}</span>}
+                </div>
               )}
               <h1 className="mb-3 text-[25px] leading-[1.38] font-bold tracking-[-0.015em] text-foreground">
                 {vm.title}

@@ -19,21 +19,18 @@ export const REPORT_ARCHIVE_MOCK_ENABLED = process.env.NEXT_PUBLIC_REPORT_ARCHIV
 /** 태그 필터 선택지(목업 kbf-row 태그 행). 단일 선택, "전체"는 화면에서 "all" 로 다룬다. */
 export const MOCK_ARCHIVE_TAGS = ["#환율", "#AI", "#반도체", "#쇼핑"] as const;
 
-/** mock 유형 배지 표시명 — 검색 대상에도 포함된다(§검색 범위 문구와 일치 유지). */
-export const REPORT_TYPE_LABEL: Record<ReportArchiveMockMeta["reportType"], string> = {
-  MORNING_BRIEFING: "아침 브리핑",
-  ON_DEMAND: "온디맨드",
-};
-
 /**
  * 실 카드에 입힐 mock 메타 풀 — 실 publicId 를 미리 알 수 없으므로 디자인 모드에서는
  * 인덱스 순환으로 배정한다(adapters/report-archive-mock.ts). 통계는 화면 검증용 소량 값.
+ *
+ * `reportType` 은 여기 없다 — 실 계약 필드가 됐고, 실 카드에 임의의 종류를 배정하면 서버가
+ * 주지 않은 값을 사실처럼 보여주게 된다. 종류 배지는 실 응답(CardResponse.reportType)이
+ * 있을 때만 뜨고, 디자인 확인용 종류 견본은 아래 데모 항목이 담당한다.
  */
 export const MOCK_ARCHIVE_META_POOL: ReportArchiveMockMeta[] = [
   {
     tags: ["#환율"],
     category: "시장 · 경제",
-    reportType: "MORNING_BRIEFING",
     visibility: "PRIVATE",
     likeCount: 0,
     commentCount: 0,
@@ -41,7 +38,6 @@ export const MOCK_ARCHIVE_META_POOL: ReportArchiveMockMeta[] = [
   {
     tags: ["#쇼핑"],
     category: "라이프",
-    reportType: "ON_DEMAND",
     visibility: "PRIVATE",
     likeCount: 0,
     commentCount: 0,
@@ -49,7 +45,6 @@ export const MOCK_ARCHIVE_META_POOL: ReportArchiveMockMeta[] = [
   {
     tags: ["#AI"],
     category: "AI · 테크",
-    reportType: "MORNING_BRIEFING",
     visibility: "PUBLIC",
     likeCount: 4,
     commentCount: 1,
@@ -95,6 +90,7 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "달러 약세 전환 보도", url: "https://example.com/fx-news" },
         { title: "야간 거래 반응 스레드", url: "https://example.com/fx-thread" },
       ],
+      reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
       ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(0, 7, 0),
@@ -102,7 +98,6 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
     meta: {
       tags: ["#환율"],
       category: "시장 · 경제",
-      reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
       likeCount: 0,
       commentCount: 0,
@@ -118,6 +113,7 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "국내 출시가 공지", url: "https://example.com/rtx-price" },
         { title: "커뮤니티 시세 정리", url: "https://example.com/rtx-thread" },
       ],
+      reportType: "ON_DEMAND",
       visibility: "PRIVATE",
       ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(0, 14, 12),
@@ -125,7 +121,6 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
     meta: {
       tags: ["#쇼핑"],
       category: "라이프",
-      reportType: "ON_DEMAND",
       visibility: "PRIVATE",
       likeCount: 0,
       commentCount: 0,
@@ -143,6 +138,7 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "로컬 구동 가이드", url: "https://example.com/llm-local" },
         { title: "커뮤니티 반응", url: "https://example.com/llm-thread" },
       ],
+      reportType: "MORNING_BRIEFING",
       visibility: "PUBLIC",
       ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(1, 7, 0),
@@ -150,7 +146,6 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
     meta: {
       tags: ["#AI"],
       category: "AI · 테크",
-      reportType: "MORNING_BRIEFING",
       visibility: "PUBLIC",
       likeCount: 12,
       commentCount: 2,
@@ -166,6 +161,7 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "환율 동향 리포트", url: "https://example.com/eur-report" },
         { title: "달러 인덱스 추이", url: "https://example.com/dxy" },
       ],
+      reportType: "ON_DEMAND",
       visibility: "PRIVATE",
       ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(2, 7, 0),
@@ -173,7 +169,6 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
     meta: {
       tags: ["#환율"],
       category: "시장 · 경제",
-      reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
       likeCount: 0,
       commentCount: 0,
@@ -189,6 +184,8 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
         { title: "규제 발표 원문", url: "https://example.com/semi-policy" },
         { title: "증권가 해석 모음", url: "https://example.com/semi-analysis" },
       ],
+      // 가입 직후 생성분 — 화면에는 "첫 리포트"로 표시된다(ONBOARDING 원문 노출 아님).
+      reportType: "ONBOARDING",
       visibility: "PRIVATE",
       ...LIST_PATH_SOCIAL,
       createdAt: daysAgoAt(34, 7, 0),
@@ -196,13 +193,15 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
     meta: {
       tags: ["#반도체"],
       category: "주식 · 투자",
-      reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
       likeCount: 0,
       commentCount: 0,
     },
   },
   {
+    // 종류 미표시(fallback) 검증용 — card.reportType 을 **일부러 두지 않는다**.
+    // 백엔드가 아직 이 필드를 안 주는 배포본·기존 보고서와 같은 상태이며, 배지가 사라지고
+    // 나머지 메타(태그·시각)가 그대로 유지되는지 확인하는 자리다.
     card: {
       publicId: "today",
       title: "AI 코딩 도구 요금 개편 — 사용 중인 플랜 영향 비교",
@@ -220,7 +219,6 @@ export const MOCK_ARCHIVE_DEMO_ITEMS: ArchiveDemoItem[] = [
     meta: {
       tags: ["#AI"],
       category: "AI · 테크",
-      reportType: "MORNING_BRIEFING",
       visibility: "PRIVATE",
       likeCount: 0,
       commentCount: 0,

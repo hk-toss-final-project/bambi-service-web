@@ -1,4 +1,5 @@
 import { normalizeHttpUrl, normalizeText } from "@/lib/normalize";
+import { toReportType } from "@/lib/report-type";
 import { isUuid } from "@/lib/utils";
 import type {
   CardAuthor,
@@ -143,6 +144,8 @@ export function toFeedCardVM(card: CardResponse): FeedCardVM {
     // 서버 값 그대로 — 없거나 예상 밖이어도 여기서 PUBLIC/PRIVATE 로 보정하지 않는다.
     visibility: card.visibility,
     tags: toCardTags(card.tags),
+    // 미배포 필드 — 없거나 계약 밖 값이면 null(화면은 종류 배지를 생략한다).
+    reportType: toReportType(card.reportType),
     sources: toCardSources(card.sources),
     createdAtLabel: formatCreatedAt(card.createdAt),
     createdAtTimeLabel: formatCreatedTime(card.createdAt),
@@ -155,12 +158,16 @@ export function toFeedCardVM(card: CardResponse): FeedCardVM {
    ───────────────────────────────────────────────────────────── */
 
 /**
- * 작성자 정규화 — displayName → username 순으로 **실제 값**을 고른다.
+ * 작성자 정규화 — `displayName` 과 `username` 을 **각각** 담는다(합치지 않는다).
  *
- * 둘 다 없으면 name·initial 모두 null 이다. 서버가 탈퇴/부재 작성자에 대해 세 필드가 전부 null 인
- * AuthorResponse 를 주는 경로가 실제로 있고(AuthorResponse.from(null), FeedService 의 탈퇴 작성자
- * TODO), 그때 "익명"·"사용자" 같은 이름을 만들어내면 존재하지 않는 사람을 화면에 그리는 셈이다.
- * 이니셜도 name 에서만 파생한다 — 이름이 없으면 이니셜도 없다.
+ * 목업(home-feed.html `.pname`)이 `표시이름 @핸들` 두 값을 나란히 보여주기 때문에 화면이 둘을
+ * 구분할 수 있어야 한다. 여기서는 공백 정리(normalizeText)만 하고 `@` 는 붙이지 않는다 —
+ * API 원문을 변조하지 않고 표기는 화면 단계에서만 만든다.
+ *
+ * 둘 다 없으면 두 필드와 initial 모두 null 이다. 서버가 탈퇴/부재 작성자에 대해 세 필드가 전부
+ * null 인 AuthorResponse 를 주는 경로가 실제로 있고(AuthorResponse.from(null), FeedService 의 탈퇴
+ * 작성자 TODO), 그때 "익명"·"사용자" 같은 이름을 만들어내면 존재하지 않는 사람을 화면에 그리는
+ * 셈이다. 이니셜도 실제 이름(displayName → username 순)에서만 파생한다 — 이름이 없으면 이니셜도 없다.
  *
  * `publicId` 는 프로필 경로(`/users/{publicId}`)에 그대로 들어가므로 **UUID 형식일 때만** 담는다.
  * 형식이 아니거나 없으면 null → 화면이 링크 없이 텍스트로만 렌더한다(죽은 링크 금지).
@@ -168,14 +175,18 @@ export function toFeedCardVM(card: CardResponse): FeedCardVM {
  */
 export function toPublicFeedAuthor(author: CardAuthor | null | undefined): PublicFeedAuthorVM {
   if (author === null || typeof author !== "object") {
-    return { publicId: null, name: null, initial: null };
+    return { publicId: null, displayName: null, username: null, initial: null };
   }
-  const name = normalizeText(author.displayName) ?? normalizeText(author.username);
+  const displayName = normalizeText(author.displayName);
+  const username = normalizeText(author.username);
   const rawId = normalizeText(author.publicId);
+  // 이니셜은 화면이 이름 자리에 쓰는 값과 같은 우선순위로 뽑는다(displayName → username).
+  const primaryName = displayName ?? username;
   return {
     publicId: rawId !== null && isUuid(rawId) ? rawId : null,
-    name,
-    initial: name === null ? null : Array.from(name)[0],
+    displayName,
+    username,
+    initial: primaryName === null ? null : Array.from(primaryName)[0],
   };
 }
 

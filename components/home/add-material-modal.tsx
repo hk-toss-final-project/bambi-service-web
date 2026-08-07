@@ -16,7 +16,10 @@ import type { CardResponse, CreateBookmarkRequest } from "@/types/feed";
  * onSaved(card)로 상위에 알리고(홈은 member 피드 refetch), 입력 초기화 후 닫는다. 실패는 §4 공통 문구.
  *
  * guest 는 nav ＋버튼에서 requireAuth 가 GuestGateModal 로 가로채므로 이 모달은 열리지 않는다
- * (열리는 시점은 항상 authenticated). "저장하고 지금 분석 받기"는 목업대로 locked(무료 플랜 미제공).
+ * (열리는 시점은 항상 authenticated).
+ *
+ * 이 모달은 관심 자료 저장만 담당한다. 온디맨드 보고서 생성은 홈 우측 rail 에서 관심사를
+ * 선택하는 별도 흐름으로 제공한다.
  */
 const FIELD_CLASS =
   "h-[46px] rounded-[10px] bg-card px-3.5 text-sm text-foreground placeholder:text-low focus-visible:ring-[3px] focus-visible:ring-wash dark:bg-card";
@@ -226,25 +229,6 @@ export function AddMaterialModal({
             <div className="text-[13.5px] font-bold text-foreground">저장하기</div>
             <div className="mt-[3px] text-xs leading-[1.55] text-muted-foreground">
               다음 아침 브리핑부터 반영돼요.
-            </div>
-          </div>
-        </div>
-        {/* .amopt.locked */}
-        <div
-          aria-disabled="true"
-          title="무료 플랜에서는 제공되지 않아요"
-          className="mb-[9px] flex cursor-not-allowed items-start gap-[11px] rounded-xl border border-border px-3.5 py-[13px] opacity-55"
-        >
-          <span className="relative mt-px h-4 w-4 shrink-0 rounded-full border-[1.5px] border-input" />
-          <div>
-            <div className="text-[13.5px] font-bold text-foreground">
-              저장하고 지금 분석 받기
-              <span className="ml-[7px] rounded-full border border-border bg-background px-2 py-0.5 align-[1px] text-[10.5px] font-semibold whitespace-nowrap text-muted-foreground">
-                무료 플랜 미제공
-              </span>
-            </div>
-            <div className="mt-[3px] text-xs leading-[1.55] text-muted-foreground">
-              이 주제로 온디맨드 보고서를 바로 만들어드려요.
             </div>
           </div>
         </div>

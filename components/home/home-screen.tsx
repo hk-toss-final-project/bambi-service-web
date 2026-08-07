@@ -12,11 +12,14 @@ import { FeedRec } from "@/components/home/feed-rec";
 import { GuestSignupPanel } from "@/components/home/guest-signup-panel";
 import { HomeNav } from "@/components/home/home-nav";
 import { MemberFeed } from "@/components/home/member-feed";
+import { OnDemandPanel } from "@/components/home/on-demand-panel";
 import { PreparingReports } from "@/components/home/preparing-reports";
 import { SideLeft } from "@/components/home/side-left";
 import { SideRight } from "@/components/home/side-right";
 import { useMemberFeed } from "@/hooks/use-member-feed";
+import { useMyInterests } from "@/hooks/use-my-interests";
 import { useMyReportJobs } from "@/hooks/use-my-report-jobs";
+import { useOnDemandGeneration } from "@/hooks/use-on-demand-generation";
 import { MOCK_SIDE_FOOT } from "@/lib/mock/feed";
 
 type HomeTab = "mine" | "rec";
@@ -50,6 +53,11 @@ function HomeView({ isMember }: { isMember: boolean }) {
   const memberFeed = useMemberFeed();
   // 생성 작업(PREPARING·ERROR)은 READY 목록과 별개 소스지만 한 번만 조회해 status 로 나눈다(중복 fetch 없음).
   const reportJobs = useMyReportJobs();
+  // 온디맨드 생성 — 데스크톱 rail 과 모바일 패널이 **같은 상태를 공유**하도록 여기서 1회만 소유한다.
+  // 패널이 각자 useMyInterests() 를 부르면 GET /api/interests 가 2번 나가고 선택도 따로 논다.
+  // guest 는 useMyInterests 내부 enabled=false 라 API 를 호출하지 않는다(다른 member 훅과 동일).
+  const myInterests = useMyInterests();
+  const onDemand = useOnDemandGeneration(myInterests);
   const preparing = reportJobs.status === "ready" ? reportJobs.preparing : [];
   const failed = reportJobs.status === "ready" ? reportJobs.failed : [];
   // READY 목록이 비었을 때 그 자리에 무엇을 넣을지(READY 가 0건인지는 MemberFeed 가 자신의 status==="empty" 로 판단):
@@ -114,6 +122,16 @@ function HomeView({ isMember }: { isMember: boolean }) {
                     </Link>
                   </div>
                 )}
+                {/* 온디맨드 생성 — 우측 rail 이 사라지는 구간(<1240px)의 대체 위치.
+                    rail 은 `max-[1240px]:hidden`(= width ≥ 1240px 에서 노출)이라 여기는 정확히
+                    그 여집합인 `min-[1240px]:hidden` 을 써 두 패널이 동시에 보이지 않게 한다.
+                    상태(선택·요청)는 rail 인스턴스와 공유하고 radio 식별자만 instanceId 로 나눈다. */}
+                <OnDemandPanel
+                  instanceId="mobile"
+                  interests={myInterests}
+                  generation={onDemand}
+                  className="mb-4 min-[1240px]:hidden"
+                />
                 {/* 내 보고서 = PREPARING(처리중) → ERROR(생성 실패) → READY(완료 카드) 순. 각 섹션은 해당 상태가 있을 때만 렌더. */}
                 <PreparingReports reports={preparing} />
                 <FailedReports reports={failed} />
@@ -128,9 +146,20 @@ function HomeView({ isMember }: { isMember: boolean }) {
             </div>
           </main>
 
-          {/* 우측 레일 — member 는 내 보고서 현황·최근 보고서, guest 는 가입 유도 패널.
-              rail 은 위 [내 보고서] 탭과 **같은 memberFeed 상태를 공유**한다(GET /api/feed 중복 호출 없음). */}
-          {isMember ? <SideRight feed={memberFeed} /> : <GuestSignupPanel />}
+          {/* 우측 레일 — member 는 내 보고서 현황 + 온디맨드 생성, guest 는 가입 유도 패널.
+              현황은 위 [내 보고서] 탭과 **같은 memberFeed 상태를 공유**한다(GET /api/feed 중복 호출 없음).
+              온디맨드 패널은 별도 API(관심사)라 상태를 여기서 만들어 넘긴다 — 두 영역의 실패가
+              서로를 지우지 않도록 rail 안에서도 분리해 렌더한다. */}
+          {isMember ? (
+            <SideRight
+              feed={memberFeed}
+              onDemandPanel={
+                <OnDemandPanel instanceId="desktop" interests={myInterests} generation={onDemand} />
+              }
+            />
+          ) : (
+            <GuestSignupPanel />
+          )}
         </div>
       </div>
 

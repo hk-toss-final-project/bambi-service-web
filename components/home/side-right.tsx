@@ -1,27 +1,41 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import type { MemberFeedState } from "@/hooks/use-member-feed";
-import { pickRecentReports, toMyReportsSummary } from "@/lib/adapters/home-rail";
+import { toMyReportsSummary } from "@/lib/adapters/home-rail";
 
 /**
- * 홈 우측 rail (member) — 데이터는 전부 **[내 보고서]가 이미 조회한 `GET /api/feed` 결과**다.
- * `HomeView` 가 소유한 `memberFeed` 상태를 그대로 받아 쓰므로 rail 때문에 API 를 다시 부르지 않는다.
+ * 홈 우측 rail (member).
  *
  * 패널 2개:
- * - 내 보고서 현황 — 전체/공개/비공개 건수 · 최근 작성일 · `/reports` 진입
- * - 최근 내 보고서 — 최신 3건, 각 항목이 `/report/{publicId}` 실제 링크
+ * - 내 보고서 현황 — 전체/공개/비공개 건수 · 최근 작성일 · `/reports` 진입.
+ *   데이터는 **[내 보고서]가 이미 조회한 `GET /api/feed` 결과**다. `HomeView` 가 소유한
+ *   `memberFeed` 상태를 그대로 받아 쓰므로 rail 때문에 API 를 다시 부르지 않는다.
+ * - 온디맨드 보고서 만들기(`onDemandPanel`) — 별도 API(`GET /api/interests`)를 쓰는 영역이라
+ *   상위가 만들어 넘긴 노드를 그대로 렌더한다. 여기서 관심사를 조회하지 않는다.
  *
- * 이전의 「오늘의 핵심 신호」·「추천 토픽」·「＋ 관심사로 추가」는 대응 API 가 없어 제거했다
- * (공개 피드나 카드 데이터를 신호·토픽으로 가공하면 없는 값을 만드는 셈이다).
+ * **두 패널의 상태는 독립이다.** 온디맨드 패널을 feed 분기 **밖**에 두는 이유가 그것이다 —
+ * 피드가 실패해도 생성 패널은 남고, 관심사가 실패해도 현황 패널은 남는다. 서로 다른 API 의
+ * 실패가 상대 영역을 지우면 사용자는 멀쩡한 기능을 잃는다.
+ *
+ * 이전의 「최근 내 보고서」(최신 3건 링크)는 온디맨드 생성 패널로 교체했다. 목록 진입은 위
+ * 현황 패널의 `전체 보고서 보기 →` 가 이미 담당하고 있어 없어진 경로가 없다.
+ * 이전의 「오늘의 핵심 신호」·「추천 토픽」·「＋ 관심사로 추가」는 대응 API 가 없어 제거했다.
  *
  * 디자인: handoff `product-components.css` 의 `.rpanel`(bg-card·border·radius 14·px-4 py-[15px]) ·
- * `.rpanel h4`(13px/700) · `.rstat`(label↔값, 12.5px, border-t, 첫 행 border 없음) ·
- * `.rrelated`(아이콘 + 제목/메타, border-t) 를 따른다. 300px 폭 · sticky · 1240px 미만 숨김은 기존 정책 유지
+ * `.rpanel h4`(13px/700) · `.rstat`(label↔값, 12.5px, border-t, 첫 행 border 없음) 을 따른다.
+ * 300px 폭 · sticky · 1240px 미만 숨김은 기존 정책 유지
  * (Tailwind v4 가 `max-[1240px]:hidden` 을 `@media not (min-width: 1240px)` 로 컴파일 → 1240px 에서는 노출).
  */
-export function SideRight({ feed }: { feed: MemberFeedState & { refetch: () => void } }) {
+export function SideRight({
+  feed,
+  onDemandPanel,
+}: {
+  feed: MemberFeedState & { refetch: () => void };
+  onDemandPanel?: ReactNode;
+}) {
   return (
     <aside
       aria-label="내 보고서 요약"
@@ -31,15 +45,14 @@ export function SideRight({ feed }: { feed: MemberFeedState & { refetch: () => v
       {feed.status === "error" && <RailError onRetry={feed.refetch} />}
       {feed.status === "empty" && <RailEmpty />}
       {feed.status === "success" && <RailContent cards={feed.data} />}
+      {onDemandPanel}
     </aside>
   );
 }
 
-/** success — 현황 + 최근 보고서. 집계는 순수 함수 2개로 한 번만 계산한다. */
+/** success — 내 보고서 현황. 집계는 순수 함수 하나로 한 번만 계산한다. */
 function RailContent({ cards }: { cards: Parameters<typeof toMyReportsSummary>[0] }) {
   const summary = toMyReportsSummary(cards);
-  // 3건: handoff 의 rail 리스트 패널(`오늘의 핵심 신호`·`관련 브리핑`)이 모두 3행 밀도를 쓴다.
-  const recent = pickRecentReports(cards, 3);
 
   return (
     <>
@@ -62,42 +75,6 @@ function RailContent({ cards }: { cards: Parameters<typeof toMyReportsSummary>[0
           전체 보고서 보기 →
         </Link>
       </Panel>
-
-      {recent.length > 0 && (
-        <Panel title="최근 내 보고서">
-          <ul>
-            {recent.map((card, i) => (
-              <li
-                key={card.publicId}
-                className={`border-t border-border ${i === 0 ? "border-t-0 pt-px" : ""}`}
-              >
-                <Link
-                  href={`/report/${card.publicId}`}
-                  className="focus-ring flex items-start gap-2.5 rounded-[6px] py-[9px] hover:bg-background"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-[11px] text-muted-foreground"
-                  >
-                    ◉
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    {/* 300px 폭에서 긴 제목은 2줄로 자른다(가짜 요약·말줄임 문구 생성 없음). */}
-                    <span className="line-clamp-2 text-[12.5px] leading-[1.4] font-semibold text-foreground">
-                      {card.title}
-                    </span>
-                    {card.createdAtLabel && (
-                      <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                        {card.createdAtLabel}
-                      </span>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
     </>
   );
 }

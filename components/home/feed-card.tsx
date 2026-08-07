@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { ReportTypeBadge } from "@/components/report/report-type-badge";
 import type { FeedCardVM } from "@/types/feed";
 
 /** 메타에 노출할 태그 최대 개수 — 나머지는 실제 남은 개수로 `+N` 표시한다. */
@@ -23,9 +24,12 @@ const VISIBLE_TAG_LIMIT = 2;
  * 현재 상태만 읽기 전용 배지로 알리고, 실제 변경과 링크 공유는 카드 상세의 공유 모달이 담당한다.
  *
  * 서버가 주는 값만 렌더한다. 이 카드에서 **제거한 것**: `whyForYou`, 출처 제목·외부 링크 전체 목록,
- * 카드 내부 긴 작성 날짜(상위 날짜 그룹이 보여준다), `MD 복사`, 목업의 report type 배지
- * (`아침 브리핑`·`온디맨드` — 서버에 해당 필드가 없다), 가짜 조회수·댓글 수·좋아요 수.
+ * 카드 내부 긴 작성 날짜(상위 날짜 그룹이 보여준다), `MD 복사`, 가짜 조회수·댓글 수·좋아요 수.
  * 자세한 정보는 `/report/{publicId}` 상세에서 확인한다.
+ *
+ * **이 카드는 [내 보고서] 전용이다.** 공개 피드는 별도 컴포넌트(`public-feed-card.tsx`)를 쓰므로
+ * 여기 있는 생성 종류·공개 상태 배지가 남의 카드에 노출될 경로가 없다. 이 컴포넌트를 공개 목록에
+ * 재사용하려 한다면 두 배지를 먼저 분리해야 한다(내 보고서에만 의미 있는 정보다).
  */
 export function FeedCard({ card }: { card: FeedCardVM }) {
   const visibleTags = card.tags.slice(0, VISIBLE_TAG_LIMIT);
@@ -35,7 +39,10 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
   if (card.sources.length > 0) metaParts.push(`출처 ${card.sources.length}건`);
   if (card.createdAtTimeLabel) metaParts.push(card.createdAtTimeLabel);
   const visibilityLabel = toVisibilityLabel(card.visibility);
-  const hasMeta = visibilityLabel !== null || visibleTags.length > 0 || metaParts.length > 0;
+  // 어댑터가 이미 계약값으로 좁혀 둔다 — null 이면 종류 미표시(배지 자체가 렌더되지 않는다).
+  const hasReportType = card.reportType !== null;
+  const hasMeta =
+    hasReportType || visibilityLabel !== null || visibleTags.length > 0 || metaParts.length > 0;
 
   return (
     <article className="mb-[9px] rounded-[14px] border border-border bg-card px-[18px] py-[15px]">
@@ -62,6 +69,7 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
       */}
       {hasMeta && (
         <div className="mt-[9px] flex flex-wrap items-center gap-[7px] text-[11.5px] text-muted-foreground">
+          <ReportTypeBadge reportType={card.reportType} />
           {visibilityLabel !== null && <VisibilityBadge label={visibilityLabel} />}
           {visibleTags.map((tag) => (
             <span key={tag} className="break-all">

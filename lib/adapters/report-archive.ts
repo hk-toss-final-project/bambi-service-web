@@ -1,4 +1,4 @@
-import { REPORT_TYPE_LABEL } from "@/lib/mock/report-archive";
+import { getReportTypeLabel, toReportType } from "@/lib/report-type";
 import type { CardResponse } from "@/types/feed";
 import type {
   ArchiveCard,
@@ -33,6 +33,8 @@ export function toArchiveCard(card: CardResponse): ArchiveCard {
     summary: card.summary,
     whyForYou: card.whyForYou,
     sources: card.sources ?? [],
+    // 미배포 필드 — 없거나 계약 밖 값이면 null(화면은 종류 배지를 생략한다).
+    reportType: toReportType(card.reportType),
     createdAtMs: valid ? ts : null,
     timeLabel: valid ? TIME_FORMAT.format(ts) : "", // 잘못된 날짜는 표시 생략(임의 값 생성 금지)
   };
@@ -41,7 +43,7 @@ export function toArchiveCard(card: CardResponse): ArchiveCard {
 /**
  * 검색 — 대소문자 구분 없이(한글은 그대로), 항목에 실제로 존재하는 값만 대상으로 한다:
  * title · summary · whyForYou · sources[].title · sources[].url
- * + mock 메타가 있으면 tags · category · reportType 표시명("아침 브리핑"/"온디맨드").
+ * + 실 reportType 표시명("아침 브리핑"/"온디맨드") · mock 메타가 있으면 tags · category.
  * 검색어가 비어 있으면(trim 후) 전체를 반환한다. API 재호출 없음(순수 필터).
  */
 export function searchArchiveItems(items: ArchiveItem[], rawQuery: string): ArchiveItem[] {
@@ -53,9 +55,8 @@ export function searchArchiveItems(items: ArchiveItem[], rawQuery: string): Arch
       item.summary,
       item.whyForYou,
       ...item.sources.flatMap((s) => [s.title, s.url]),
-      ...(item.mock
-        ? [...item.mock.tags, item.mock.category ?? "", REPORT_TYPE_LABEL[item.mock.reportType]]
-        : []),
+      getReportTypeLabel(item.reportType) ?? "",
+      ...(item.mock ? [...item.mock.tags, item.mock.category ?? ""] : []),
     ];
     return haystack.some((v) => (v ?? "").toLowerCase().includes(query));
   });

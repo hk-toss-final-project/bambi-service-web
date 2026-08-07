@@ -1,4 +1,5 @@
 import type { CardSource } from "@/types/feed";
+import type { ReportType } from "@/types/report";
 
 /**
  * 내 보고서 전체 보기(/reports) 화면 모델 — 목업 우선(mock-first) 단계.
@@ -14,6 +15,11 @@ export type ArchiveCard = {
   summary: string;
   whyForYou: string;
   sources: CardSource[];
+  /**
+   * 검증을 통과한 보고서 생성 종류(실 API 필드). 서버가 안 주거나 계약 밖 값이면 null →
+   * 화면은 종류 배지를 생략한다. mock 메타가 아니라 **실 응답에서만** 온다.
+   */
+  reportType: ReportType | null;
   /** createdAt(ISO) 파싱 결과(ms). 파싱 실패 시 null — 화면을 깨뜨리지 않고 "날짜 정보 없음" 그룹으로 보낸다. */
   createdAtMs: number | null;
   /** 카드 메타에 표시할 시각(예: "오전 7:00"). 파싱 실패 시 빈 문자열(표시 생략). */
@@ -23,11 +29,14 @@ export type ArchiveCard = {
 /**
  * mock 전용 메타 — 전부 **API 미제공** 필드(백엔드 요청 목록의 근거).
  * 실 API 확정 시 서버 응답 필드로 1:1 교체하고 이 타입·mock 파일을 삭제한다.
+ *
+ * `reportType` 은 여기서 빠졌다 — 실 계약 필드(ArchiveCard.reportType)가 생겨 mock 이 같은 값을
+ * 따로 들고 있으면 출처가 둘이 된다. 특히 mock 모드가 **실 카드에** 메타 풀을 순환 배정하던 구조라,
+ * 그대로 두면 실제 종류를 모르는 카드에 임의의 종류가 붙는다(계약 위장 금지).
  */
 export type ReportArchiveMockMeta = {
   tags: string[];
   category: string | null;
-  reportType: "MORNING_BRIEFING" | "ON_DEMAND";
   visibility: "PRIVATE" | "PUBLIC";
   likeCount: number;
   commentCount: number;

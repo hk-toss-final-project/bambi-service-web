@@ -7,17 +7,31 @@
 export type ReportStatus = "PREPARING" | "READY" | "ERROR";
 
 /**
- * 보고서 생성 유형 — 온디맨드(관심 자료 분석)·데일리(아침 브리핑) 구분용.
- * ⚠ Mock/VM 범위의 화면 구분값이다. 실제 API 계약(백엔드 필드명·값)으로 단정하지 않는다
- *   — service.reports 스키마 확정 시 어댑터에서 매핑한다.
+ * 보고서가 어떤 방식으로 생성됐는지 — 아침 브리핑(정기)·온디맨드(요청)·온보딩(가입 직후 첫 리포트).
+ *
+ * 백엔드 `reportType` 필드와 값이 1:1인 **단일 어휘**다. 화면 문구 매핑은 `lib/report-type.ts`
+ * (`getReportTypeLabel`) 한 곳에서만 하고, 여기에 프론트 전용 값을 새로 만들지 않는다.
+ * 값을 모르거나 계약에 없는 문자열이 오면 종류를 추측하지 않고 미표시로 둔다.
+ *
+ * ⚠ `ONBOARDING` 은 **API 식별값**이다. 사용자에게는 항상 "첫 리포트"로만 보이며, 이 문자열
+ * 자체를 화면에 노출하지 않는다(다른 두 값도 마찬가지 — 노출은 라벨 매핑을 반드시 거친다).
  */
-export type ReportKind = "ON_DEMAND" | "DAILY";
+export type ReportType = "MORNING_BRIEFING" | "ON_DEMAND" | "ONBOARDING";
+
+/**
+ * 생성 **진행 상태를 추적할 수 있는** 종류만 — PREPARING·ERROR 슬롯이 다룰 수 있는 집합이다.
+ *
+ * `ONBOARDING` 이 빠진 이유: 완성된 보고서의 `reportType` 값으로는 존재하지만, Service 트리거와
+ * Pending 행이 없는 **agent 자동 생성 경로**라 처리중·실패 상태 자체가 계약에 없다. 있지도 않은
+ * 상태의 안내 문구를 만들지 않기 위해 타입 수준에서 막는다(완성 후 배지 표시는 ReportType 그대로).
+ */
+export type TrackableReportType = Exclude<ReportType, "ONBOARDING">;
 
 /** 내 보고서 1건의 생성 상태 요약. 처리중 여부는 status 로 파생한다(status === "PREPARING"). */
 export type MyReport = {
   id: string;
   title: string;
-  kind: ReportKind;
+  reportType: TrackableReportType;
   status: ReportStatus;
 };
 
@@ -59,4 +73,10 @@ export type ReportResponse = {
   body: string | null;
   citations: ReportCitation[];
   createdAt: string; // ISO-8601 (서버 OffsetDateTime)
+  /**
+   * 생성 방식(아침 브리핑·온디맨드). **아직 배포되지 않은 필드**라 optional 이다 — 서버가
+   * 내려주기 시작하면 그대로 채워진다. 없거나 계약 밖 값이면 종류를 표시하지 않는다
+   * (판정은 lib/report-type.ts 가 런타임에서 한다).
+   */
+  reportType?: ReportType | null;
 };
