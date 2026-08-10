@@ -59,7 +59,7 @@ function LlmWikiView() {
       resetLock.current ||
       graph.status !== "success" ||
       !window.confirm(
-        "LLM Wiki를 초기화할까요? 저장한 원본 자료는 남지만 현재 Wiki 노드와 관심사 연결은 모두 초기화되며 되돌릴 수 없어요.",
+        "LLM Wiki를 초기화할까요? AI가 분석한 Wiki 노드와 관심사가 모두 삭제되고 되돌릴 수 없어요. 저장한 자료 목록은 남지만, Wiki를 다시 만들려면 자료를 다시 저장해야 해요.",
       )
     ) {
       return;
@@ -147,7 +147,7 @@ function LlmWikiView() {
               >
                 {resetResult === "error"
                   ? "Wiki를 초기화하지 못했어요. 잠시 후 다시 시도해 주세요."
-                  : "Wiki를 초기화했어요. 저장한 원본 자료는 그대로 유지돼요."}
+                  : "Wiki를 초기화했어요. 자료를 다시 저장하면 Wiki가 새로 만들어져요."}
               </p>
             )}
 
