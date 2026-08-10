@@ -9,6 +9,7 @@ import { FeedSkeleton } from "@/components/home/feed-skeleton";
 import { HomeNav } from "@/components/home/home-nav";
 import { SideLeft } from "@/components/home/side-left";
 import { AuthorCardItem } from "@/components/profile/author-card";
+import { DeepDiveModal } from "@/components/profile/deep-dive-modal";
 import { FollowListModal } from "@/components/profile/follow-list-modal";
 import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 import { ProfileRail } from "@/components/profile/profile-rail";
@@ -107,6 +108,7 @@ function ProfileBody({
   onEdited: () => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [deepDiveOpen, setDeepDiveOpen] = useState(false);
   /** null 이면 닫힘. 값이 곧 처음 열릴 탭이다(팔로워 클릭 → followers, 팔로잉 클릭 → following). */
   const [followListTab, setFollowListTab] = useState<FollowListKind | null>(null);
   /**
@@ -186,6 +188,19 @@ function ProfileBody({
             <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-2">
               {isSelf ? (
                 <>
+                  {/*
+                    깊게 파기 — 내 위키 관심사 1개를 골라 연결 주제까지 통합한 범주 리포트를 접수한다
+                    (2026-08-10 우석·기용, 자리는 기용 제안 = 주 액션 왼쪽 보조). 개인 생성 액션이라
+                    본인 프로필에만 둔다 — 타인 분기의 공유·팔로우와 달리 남의 프로필에선 의미가 없다.
+                  */}
+                  <Button
+                    variant="outline"
+                    className="h-8 px-3 text-[12.5px]"
+                    onClick={() => setDeepDiveOpen(true)}
+                    aria-haspopup="dialog"
+                  >
+                    깊게 파기
+                  </Button>
                   <Button className="h-8 px-3 text-[12.5px]" onClick={() => setEditOpen(true)}>
                     프로필 편집
                   </Button>
@@ -259,6 +274,9 @@ function ProfileBody({
       {isSelf && editOpen && (
         <ProfileEditModal profile={profile} onClose={() => setEditOpen(false)} onSaved={onEdited} />
       )}
+
+      {/* 열릴 때만 마운트(기존 모달 규약) — 매 오픈마다 관심사 목록을 새로 받는다(stale tagId 최소화). */}
+      {isSelf && deepDiveOpen && <DeepDiveModal onClose={() => setDeepDiveOpen(false)} />}
 
       {/*
         팔로워/팔로잉 목록 — 열릴 때만 마운트한다(기존 모달 규약). 탭 수치는 이미 받아 둔 프로필

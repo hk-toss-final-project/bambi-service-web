@@ -16,6 +16,18 @@ export type GenerateReportRequest = {
 };
 
 /**
+ * 깊게 파기(관심사 범주 리포트) 요청 body — 2026-08-10 계약(service-api #72).
+ *
+ * `interestTagId` 는 **GET /api/wiki/tags 응답의 `tagId`**(위키 관심사 UUID)다 — 이름 문자열이
+ * 아니다(topic 경로와 ID 체계가 다르다). 서버가 내 위키 관심사 실재 여부를 검증하고, 위키
+ * 재계산으로 stale 해진 id 는 404(INTEREST_NOT_FOUND)로 거절한다 — 목록 재조회 후 재선택.
+ * `topic`·`changeHistoryEnabled` 와 함께 보내면 400 — 두 경로는 배타다.
+ */
+export type GenerateDeepDiveRequest = {
+  interestTagId: string;
+};
+
+/**
  * 성공(HTTP 202) data — **"생성 요청이 서버에 접수됨"만** 의미한다.
  * 생성 진행·완료 여부는 이 응답으로 알 수 없다(Pending 조회는 별도 범위).
  *
