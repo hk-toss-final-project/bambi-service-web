@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AuthShell } from "@/components/auth/auth-shell";
-import { GoogleButton } from "@/components/auth/google-button";
 import { Orb } from "@/components/brand/orb";
 
 export const metadata: Metadata = {
@@ -13,7 +12,9 @@ export const metadata: Metadata = {
 /**
  * 회원가입(방식 선택) — 목업 product/auth-signup-choice.html 1:1.
  * 목업의 choice 뷰는 뒤로 버튼이 비노출(visibility:hidden) → back 슬롯 생략.
- * Google 은 시각 전용(P1). "이메일로 계속하기"만 실제 이동.
+ * 목업의 Google 버튼은 제거했다 — 소셜 로그인은 P2(범위 밖)라 백엔드가 없고,
+ * 동작하지 않는 버튼을 남기지 않는다(CLAUDE.md §7-2 확인 항목 해소, 2026-08-10 우석 결정).
+ * 그래서 현재 가입 방식은 "이메일로 계속하기" 하나다.
  */
 export default function SignupChoicePage() {
   return (
@@ -38,8 +39,6 @@ export default function SignupChoicePage() {
       >
         이메일로 계속하기
       </Link>
-
-      <GoogleButton />
 
       {/* .auth-switch */}
       <p className="mt-[22px] text-[13.5px] text-muted-foreground">

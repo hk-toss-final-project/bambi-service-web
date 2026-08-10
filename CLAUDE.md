@@ -407,7 +407,7 @@ docs/design-handoff/
 | # | 충돌 | 상세 | 처리 |
 |---|---|---|---|
 | 1 | **회원가입 `displayName`** | API는 `displayName` **필수(실측 확인)**. 목업 `auth-signup-email.html`에는 **email·password 입력만** 존재 | **✅ 해소 — 목업과 다르게 간다.** 회원가입 폼에 **`displayName` 입력 필드를 추가**한다. 목업의 스타일·디자인 토큰·레이아웃 언어는 그대로 유지하고, 기존 email/password 필드와 **동일한 마크업 패턴**으로 추가할 것. 라벨/placeholder 문구는 목업 톤에 맞춘다. 필드 순서는 displayName → email → password 권장 |
-| 2 | **Google 로그인 버튼** | 목업에 "Google로 계속하기" 존재. 소셜 로그인은 **P1** | P0 미구현. 노출 여부(숨김/비활성) **확인 필요** |
+| 2 | **Google 로그인 버튼** | 목업에 "Google로 계속하기" 존재. 소셜 로그인은 루트 CLAUDE.md 기준 **P2(MVP 제외)** | **✅ 해소 — 화면에서 제거한다 (2026-08-10 우석 결정).** 백엔드에 대응 엔드포인트가 없어(`/api/auth` = signup·login·me·password) 클릭해도 아무 일이 없었고, `aria-disabled` 만 있고 `disabled` 가 아니라 **비활성으로 보이지도 않았다.** 「동작하지 않는 UI 를 만들지 않는다」 원칙(§2 2026-07-28·07-31 범위 변경과 동일 기준)에 맞춰 로그인·가입 두 화면에서 버튼과 `.auth-or` 구분선을 제거하고 `components/auth/google-button.tsx` 를 삭제했다. 소셜 로그인을 다시 하려면 `users.password_hash NOT NULL` 해제 마이그레이션·계정 병합 정책·OAuth 클라이언트 설정이 함께 필요하다 |
 
 ---
 
@@ -580,7 +580,7 @@ main(또는 develop) 최신화 (git pull)
 ## 15. 확인 필요 목록 (해소 전 임의 결정 금지)
 
 ### 팀 확인 대기
-- [ ] **Google 로그인 버튼** 노출 여부 (§7-2)
+- [x] ~~**Google 로그인 버튼** 노출 여부 (§7-2)~~ → **해소 (2026-08-10): 화면에서 제거.** 상세는 §7 충돌표 #2.
 - [x] ~~**홈 피드 / 카드 상세 / 관심 자료 저장 API** 경로·스키마~~ → **전부 해소·연결 완료.**
   `GET /api/feed`(내 보고서) · `GET /api/feed/public`(공개 피드, 2026-08-04) ·
   `GET /api/cards/{publicId}`(카드 상세) · `POST /api/bookmarks`(관심 자료 저장).

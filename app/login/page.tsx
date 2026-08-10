@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 
 import { AuthBack, AuthShell } from "@/components/auth/auth-shell";
-import { GoogleButton } from "@/components/auth/google-button";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoginRedirectForm } from "@/components/auth/login-redirect-form";
 import { SignupNotice } from "@/components/auth/signup-notice";
@@ -16,7 +15,9 @@ export const metadata: Metadata = {
 
 /**
  * 로그인 화면 — 목업 product/auth-login.html 1:1.
- * Google·비밀번호 찾기는 시각 요소만 목업대로 두고 기능 미연결(P1).
+ * 목업의 Google 버튼은 제거했다 — 소셜 로그인은 P2(범위 밖)라 백엔드가 없고,
+ * 동작하지 않는 버튼을 남기지 않는다(CLAUDE.md §7-2 확인 항목 해소, 2026-08-10 우석 결정).
+ * 비밀번호 찾기는 시각 요소만 목업대로 두고 기능 미연결(P1).
  * 뒤로는 공개 홈(`/`)으로 이동한다(history 유무와 무관하게 항상 `/`, §5 공개 홈).
  */
 export default function LoginPage() {
@@ -41,13 +42,6 @@ export default function LoginPage() {
       <Suspense fallback={<LoginForm />}>
         <LoginRedirectForm />
       </Suspense>
-
-      {/* .auth-or */}
-      <div className="my-[18px] flex items-center gap-3 text-[11.5px] text-muted-foreground before:h-px before:flex-1 before:bg-border before:content-[''] after:h-px after:flex-1 after:bg-border after:content-['']">
-        또는
-      </div>
-
-      <GoogleButton />
 
       {/* .auth-switch */}
       <p className="mt-[22px] text-[13.5px] text-muted-foreground">
