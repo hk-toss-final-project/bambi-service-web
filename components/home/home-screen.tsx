@@ -45,15 +45,16 @@ function parseTab(value: string | null): HomeTab {
 }
 
 /**
- * 개발용 리포트 트리거 패널 — **명시적으로 켤 때만** 노출한다 (2026-08-11 우석).
+ * 개발용 리포트 트리거 패널 — 기본 노출, 운영 빌드에서 명시적으로 false 를 주면 제거한다.
  *
- * 원래는 "기본 노출 + 운영 빌드에서 false 주입"이었는데, 배포 워크플로에 그 변수가 없어
- * **운영 화면에 그대로 실렸다**("실제 리포트와 알림이 생성되며 LLM 비용이 발생합니다"가
- * 실사용자에게 보임). 빠뜨리면 새는 기본값 대신, 빠뜨리면 안 보이는 기본값으로 뒤집는다.
- * 로컬 개발은 `.env.local` 에 NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED=true 한 줄이면 그대로 쓴다.
+ * ⚠️ 2026-08-11 에 opt-in 으로 뒤집었다가 **우석 지시로 되돌렸다** — 제출 전까지 즉시 생성
+ * 버튼이 필요하기 때문이다(리허설·데모 준비에서 아침/Wiki 리포트를 바로 돌려봐야 한다).
+ * 배포 워크플로에 `NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED` 가 없으므로 **운영 화면에도 보인다**.
+ * 실사용자에게 감추려면 그때 이미지 빌드에 `=false` 를 주입해야 한다(런타임 env 로는 안 된다 —
+ * NEXT_PUBLIC_* 은 빌드 시점에 박힌다).
  */
 const DEVELOPMENT_REPORT_TRIGGERS_ENABLED =
-  process.env.NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED === "true";
+  process.env.NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED !== "false";
 
 /**
  * 홈 화면 — 인증 상태별로 명확히 분기(§15). 상세(report-screen)와 동일한 4분기.
