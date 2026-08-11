@@ -51,7 +51,7 @@ export function WikiFound({
     return (
       <section
         aria-label="AI가 최근 발견한 관심사"
-        className="mb-8 rounded-[14px] border border-border bg-card px-[18px] py-4"
+        className="rounded-[14px] border border-border bg-card px-[18px] py-4"
       >
         <h2 className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
           AI가 최근 발견한 관심사
@@ -69,7 +69,7 @@ export function WikiFound({
     // 경계가 안 보인다.
     <section
       aria-label="AI가 최근 발견한 관심사"
-      className="mb-8 rounded-[14px] border border-border bg-card px-[18px] py-4"
+      className="rounded-[14px] border border-border bg-card px-[18px] py-4"
     >
       <h2 className="flex items-baseline gap-2 text-[15px] font-bold tracking-[-0.01em] text-foreground">
         AI가 최근 발견한 관심사

@@ -33,8 +33,13 @@ export function WikiMyInterests({
   onChanged: () => void;
 }) {
   return (
-    <section aria-label="내 관심사" className="mb-8">
-      <h2 className="flex items-baseline gap-2 text-[17px] font-bold tracking-[-0.01em] text-foreground">
+    // 발견 후보 패널과 짝을 이루는 박스(2026-08-11 우석 — 2열 배치). 같은 껍데기·같은 제목 크기라
+    // 왼쪽에서 추가하면 오른쪽에 나타나는 이동이 한눈에 읽힌다.
+    <section
+      aria-label="내 관심사"
+      className="rounded-[14px] border border-border bg-card px-[18px] py-4"
+    >
+      <h2 className="flex items-baseline gap-2 text-[15px] font-bold tracking-[-0.01em] text-foreground">
         내 관심사
         {state.status === "success" && (
           <span className="text-[12px] font-semibold text-muted-foreground">{state.data.length}개</span>
@@ -43,10 +48,10 @@ export function WikiMyInterests({
       {/*
         안내는 섹션에 한 번만 둔다(2026-08-11 우석 — 화면 정리). 이전에는 카드마다
         "직접 추가한 관심사예요 — 관련 자료를 저장하면 AI 이해가 깊어져요"가 똑같이 반복돼
-        10개면 같은 문장이 10번 나왔다. 카드에는 그 관심사에만 해당하는 근거만 남긴다.
+        10개면 같은 문장이 10번 나왔다. 행에는 그 관심사에만 해당하는 근거(hover)만 남긴다.
       */}
-      <p className="mt-1 mb-2.5 text-[12.5px] leading-[1.6] text-muted-foreground">
-        브리핑 주제로 쓰는 관심사예요. 관련 자료를 저장하면 AI가 근거를 찾아 함께 보여줘요.
+      <p className="mt-1 mb-3 text-[12.5px] leading-[1.6] text-muted-foreground">
+        브리핑 주제로 쓰는 관심사예요. 삭제하면 왼쪽 발견 목록으로 돌아가요.
       </p>
 
       {state.status === "loading" && <FeedSkeleton />}
@@ -54,7 +59,7 @@ export function WikiMyInterests({
       {state.status === "error" && (
         <StateView
           role="alert"
-          className="min-h-[160px]"
+          className="min-h-[120px]"
           icon={<IconAlert />}
           title="내 관심사를 불러오지 못했어요"
           description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."
@@ -64,15 +69,15 @@ export function WikiMyInterests({
 
       {state.status === "success" && state.data.length === 0 && (
         <StateView
-          className="min-h-[160px]"
+          className="min-h-[120px]"
           icon={<IconEmptyDoc />}
           title="아직 관심사가 없어요"
-          description="위 발견 목록에서 추가하거나, 관심 자료를 저장해 AI가 찾게 해보세요."
+          description="왼쪽 발견 목록에서 추가하거나, 관심 자료를 저장해 AI가 찾게 해보세요."
         />
       )}
 
       {state.status === "success" && state.data.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {state.data.map((interest) => (
             <InterestCard
               key={interest.id}
@@ -134,8 +139,11 @@ function InterestCard({
     : undefined;
 
   return (
-    // 한 줄 행 — 목록이 촘촘하게 읽히도록 카드 높이를 최소화한다.
-    <article className="rounded-[12px] border border-border bg-card px-[14px] py-2.5" title={reasonTitle}>
+    // 한 줄 행 — 패널 배경(bg-card) 위에 놓이므로 bg-background 로 한 톤 낮춘다(발견 칩과 동일 규칙).
+    <article
+      className="rounded-[10px] border border-border bg-background px-3 py-2"
+      title={reasonTitle}
+    >
       {/*
         배지·신뢰도 퍼센트는 노출하지 않는다 (2026-08-11 우석).
         confidence 는 agent 산식이 `0.4 + 출처수*0.12 + min(연결,10)*0.03` 이라 바닥이 0.4 로

@@ -89,8 +89,15 @@ function WikiView() {
               myInterests={myInterests}
               onChanged={my.refetch}
             />
-            <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
-            <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
+            {/*
+              발견 후보(왼쪽) ↔ 내 관심사(오른쪽) 2열 (2026-08-11 우석).
+              추가하면 왼쪽에서 사라지고 오른쪽에 나타나므로 두 목록의 관계가 눈으로 읽힌다.
+              좁은 화면(<900px)에서는 한 열로 쌓아 각 목록이 뭉개지지 않게 한다.
+            */}
+            <div className="mb-8 grid grid-cols-1 items-start gap-3 min-[900px]:grid-cols-2">
+              <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
+              <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
+            </div>
             <LlmWikiEntry />
           </main>
 
