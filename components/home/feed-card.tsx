@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { ReportTypeBadge } from "@/components/report/report-type-badge";
 import type { FeedCardVM } from "@/types/feed";
@@ -46,22 +47,30 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
 
   return (
     <article className="mb-[9px] rounded-[14px] border border-border bg-card px-[18px] py-[15px]">
-      {/* .krow1 — 제목만. 우측 인터랙티브 컨트롤은 두지 않는다(공개 전환은 상세에서). */}
-      <h3 className="text-[15px] leading-[1.45] font-bold tracking-[-0.01em] text-foreground">
-        <Link
-          href={`/report/${card.publicId}`}
-          className="focus-ring line-clamp-2 rounded-[3px] hover:text-signal-ink"
-        >
-          {card.title}
-        </Link>
-      </h3>
+      {/*
+        .krow1 — 제목·요약(왼쪽) + 대표 이미지 썸네일(오른쪽). 우측 인터랙티브 컨트롤은 두지
+        않는다(공개 전환은 상세에서). 썸네일이 없으면 이 flex 는 한 칸짜리라 기존 배치와 같다.
+      */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[15px] leading-[1.45] font-bold tracking-[-0.01em] text-foreground">
+            <Link
+              href={`/report/${card.publicId}`}
+              className="focus-ring line-clamp-2 rounded-[3px] hover:text-signal-ink"
+            >
+              {card.title}
+            </Link>
+          </h3>
 
-      {/* .s — 요약 2줄. 빈 요약이면 영역을 생략한다. 긴 단어·URL 도 줄바꿈해 가로 스크롤을 막는다. */}
-      {card.summary && (
-        <p className="mt-[5px] line-clamp-2 text-[13px] leading-[1.6] break-words text-ink-mid">
-          {card.summary}
-        </p>
-      )}
+          {/* .s — 요약 2줄. 빈 요약이면 영역을 생략한다. 긴 단어·URL 도 줄바꿈해 가로 스크롤을 막는다. */}
+          {card.summary && (
+            <p className="mt-[5px] line-clamp-2 text-[13px] leading-[1.6] break-words text-ink-mid">
+              {card.summary}
+            </p>
+          )}
+        </div>
+        <CoverThumb coverImage={card.coverImage} title={card.title} publicId={card.publicId} />
+      </div>
 
       {/*
         .m — 공개 상태 배지 · 태그 · 출처 수 · 시각. 실제 값이 있는 항목만 렌더한다
@@ -95,6 +104,56 @@ export function FeedCard({ card }: { card: FeedCardVM }) {
         </div>
       )}
     </article>
+  );
+}
+
+/**
+ * 대표 이미지 썸네일 — <b>있을 때만</b> 생긴다(2026-08-11 우석).
+ *
+ * 실측(공개 카드 20건)에서 보유율이 35% 였고 원격 이미지가 403·404 로 죽는 경우도 있었다
+ * (`thumb.mt.co.kr`·`img.etnews.com`). 그래서 <b>없는 카드는 지금 모양 그대로 두고</b>,
+ * 로드 실패한 카드도 즉시 그 모양으로 되돌아간다 — 회색 자리표시자를 남기면 목록 대부분이
+ * "이미지 로딩 실패"처럼 보이기 때문이다(상세 화면 ReportCoverHero 와 같은 규칙).
+ *
+ * 링크는 카드 제목과 같은 곳(`/report/{publicId}`)으로 간다. 상세의 큰 이미지는 원문(언론사)으로
+ * 가지만 <b>목록에서는 보고서로 가야 한다</b> — 목록에서 기대하는 동작은 "이 보고서 열기"다.
+ * 이미지는 장식이라 `alt=""` + `aria-hidden` 으로 두고 스크린리더에는 제목 링크만 남긴다.
+ */
+function CoverThumb({
+  coverImage,
+  title,
+  publicId,
+}: {
+  coverImage: FeedCardVM["coverImage"];
+  title: string;
+  publicId: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (coverImage === null || failed) return null;
+  return (
+    <Link
+      href={`/report/${publicId}`}
+      tabIndex={-1}
+      aria-hidden="true"
+      className="focus-ring block shrink-0 overflow-hidden rounded-[10px] border border-border"
+    >
+      {/*
+        next/image 를 쓰지 않는다 — 이미지 호스트가 언론사 CDN 이라 임의로 늘어나는데,
+        next.config 의 remotePatterns 로 화이트리스트를 관리할 수 없다(막히면 통째로 안 나온다).
+        폭·높이를 고정해 두므로 레이아웃 시프트는 없다.
+      */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={coverImage.url}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="h-[78px] w-[104px] object-cover min-[560px]:h-[100px] min-[560px]:w-[160px]"
+        title={title}
+      />
+    </Link>
   );
 }
 

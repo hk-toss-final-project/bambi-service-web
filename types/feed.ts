@@ -14,6 +14,7 @@
  * - 게스트 단건 상세는 liked=false(서버가 viewerId 없음 → false, null 아님).
  */
 
+import type { ReportCoverImageVM } from "@/lib/adapters/report";
 import type { ReportCoverImage, ReportType } from "@/types/report";
 
 /**
@@ -195,6 +196,17 @@ export type FeedCardVM = {
    * (/reports 의 ArchiveCard.createdAtMs 와 같은 규율).
    */
   createdAtMs: number | null;
+  /**
+   * 리포트 대표 이미지 — 있을 때만 목록 카드 오른쪽에 썸네일로 보여준다(2026-08-11 우석).
+   *
+   * **없으면 없는 대로 둔다.** 실측(2026-08-11, 공개 카드 20건)에서 보유율이 35% 였고,
+   * 원격 이미지가 403·404 로 죽는 경우도 있었다(`thumb.mt.co.kr`·`img.etnews.com`). 그래서
+   * 자리를 미리 비워두거나 회색 박스를 두지 않는다 — 이미지가 있는 카드만 오른쪽이 생기고,
+   * 로드에 실패하면 그 카드도 즉시 기존 모양으로 되돌아간다(카드마다 독립적으로).
+   *
+   * 어댑터가 `toReportCoverImage` 로 URL 안전성(http/https·사설망 차단)까지 검증해 담는다.
+   */
+  coverImage: ReportCoverImageVM | null;
 };
 
 /* ─────────────────────────────────────────────────────────────

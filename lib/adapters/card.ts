@@ -1,3 +1,4 @@
+import { toReportCoverImage } from "@/lib/adapters/report";
 import { normalizeHttpUrl, normalizeText } from "@/lib/normalize";
 import { toReportType } from "@/lib/report-type";
 import { isUuid } from "@/lib/utils";
@@ -167,6 +168,8 @@ export function toFeedCardVM(card: CardResponse): FeedCardVM {
     createdAtLabel: formatCreatedAt(card.createdAt),
     createdAtTimeLabel: formatCreatedTime(card.createdAt),
     createdAtMs: typeof card.createdAt === "string" ? parseCreatedAtMs(card.createdAt) : null,
+    // 목록 응답에는 2026-08-11 배포 전까지 없던 필드다 — 없으면 null 이고 썸네일 자체가 안 생긴다.
+    coverImage: toReportCoverImage(card.coverImage),
   };
 }
 
