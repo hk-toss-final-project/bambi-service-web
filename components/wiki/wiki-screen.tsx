@@ -79,6 +79,13 @@ function WikiView() {
               </p>
             </header>
 
+            {/*
+              저장 확인 스트립(08-11 우석) — **본문 맨 위**다. 방금 ＋관심 자료로 저장한 사람이
+              페이지를 열자마자 "저장은 됐다"를 확인하는 게 목적이라, 관심사 목록 아래(스크롤 끝)에
+              두면 목적을 잃는다(첫 배치에서 실제로 안 보였다). 저장 이력이 없으면 스스로 숨어
+              기존 화면 상단을 어지럽히지 않는다.
+            */}
+            <WikiRecentSaves state={recentSaves} />
             <WikiMind
               taxonomy={taxonomy}
               tags={interests}
@@ -87,8 +94,6 @@ function WikiView() {
             />
             <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
             <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
-            {/* 저장 확인 스트립(08-11 우석) — 위키 반영 전에도 "저장 자체"가 여기 즉시 보인다. */}
-            <WikiRecentSaves state={recentSaves} />
             <LlmWikiEntry />
           </main>
 
