@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
+
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { Orb } from "@/components/brand/orb";
@@ -30,6 +32,18 @@ type HomeTab = "mine" | "rec";
 /** HomeView 의 `tab` 최초 진입값과 동일 — 로고 재클릭 시 되돌아갈 기본 탭. */
 const HOME_INITIAL_TAB: HomeTab = "mine";
 
+/**
+ * 탭을 URL 쿼리(`?tab=feed`)에 남긴다 (2026-08-11 우석 — "피드 보다 새로고침하면 내 보고서로 돌아온다").
+ * 상태만 들고 있으면 새로고침·뒤로가기에서 선택이 사라지고, 피드 화면을 링크로 공유할 수도 없다.
+ * 기본 탭(mine)은 쿼리를 붙이지 않는다 — 홈 주소가 `/?tab=mine` 으로 지저분해지지 않게.
+ */
+const TAB_QUERY_KEY = "tab";
+const FEED_TAB_VALUE = "feed";
+
+function parseTab(value: string | null): HomeTab {
+  return value === FEED_TAB_VALUE ? "rec" : HOME_INITIAL_TAB;
+}
+
 /** 개발 서버에서는 기본 노출하고, 운영 빌드에서 명시적으로 false를 주면 제거한다. */
 const DEVELOPMENT_REPORT_TRIGGERS_ENABLED =
   process.env.NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED !== "false";
@@ -56,10 +70,34 @@ function HomeView({ isMember }: { isMember: boolean }) {
   // 원시 tab 은 member 의 선택만 담는다(기본 = 내 보고서). guest 는 [내 보고서] 탭이 없으므로
   // 유효 탭을 항상 "rec"(공개 피드)로 강제한다 → effectiveTab 하나를 aria-selected·hidden·렌더 분기에
   // 공통 사용해 "선택된 탭 = 표시되는 패널"이 항상 일치한다. member↔guest 전환 동기화 effect 불필요.
-  const [tab, setTab] = useState<HomeTab>(HOME_INITIAL_TAB);
+  // 탭은 URL 이 소유한다(로컬 state 아님) — 새로고침·뒤로가기·링크 공유에서 선택이 유지된다.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tab = parseTab(searchParams.get(TAB_QUERY_KEY));
   const [amOpen, setAmOpen] = useState(false);
+
+  /**
+   * 탭 전환 — replace 를 쓴다. push 면 탭을 몇 번 눌렀는지가 뒤로가기 히스토리에 그대로 쌓여
+   * "뒤로 = 이전 화면"이라는 기대가 깨진다(같은 화면 안의 전환이라 히스토리 항목이 아니다).
+   * scroll:false 로 전환 시 스크롤이 맨 위로 튀지 않게 한다.
+   */
+  const selectTab = useCallback(
+    (next: HomeTab) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === HOME_INITIAL_TAB) {
+        params.delete(TAB_QUERY_KEY);
+      } else {
+        params.set(TAB_QUERY_KEY, FEED_TAB_VALUE);
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
   // 로고 재클릭 시 홈을 최초 진입 상태로 되돌린다 — 현재 구조에서 탭에 종속된 로컬 상태는 tab 뿐이다.
-  const resetHome = () => setTab(HOME_INITIAL_TAB);
+  const resetHome = () => selectTab(HOME_INITIAL_TAB);
   // member [내 보고서] 탭 데이터를 HomeView 가 소유한다 → 저장 성공 시 refetch 를 저장 모달과 공유(§4).
   // guest 는 useMemberFeed / useMyReportJobs 내부 enabled=false 라 API 를 호출하지 않는다.
   const memberFeed = useMemberFeed();
@@ -110,11 +148,11 @@ function HomeView({ isMember }: { isMember: boolean }) {
               className="sticky top-4 z-20 mb-4 flex overflow-hidden rounded-[14px] border border-border bg-card"
             >
               {isMember && (
-                <TabButton id="mine" active={effectiveTab === "mine"} onSelect={() => setTab("mine")}>
+                <TabButton id="mine" active={effectiveTab === "mine"} onSelect={() => selectTab("mine")}>
                   내 보고서
                 </TabButton>
               )}
-              <TabButton id="rec" active={effectiveTab === "rec"} onSelect={() => setTab("rec")}>
+              <TabButton id="rec" active={effectiveTab === "rec"} onSelect={() => selectTab("rec")}>
                 피드
               </TabButton>
             </div>
