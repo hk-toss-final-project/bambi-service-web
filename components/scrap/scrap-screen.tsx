@@ -27,8 +27,10 @@ const SCRAPPED_AT_FORMAT = new Intl.DateTimeFormat("ko-KR", {
 /**
  * 북마크(스크랩) — /scraps. member 전용(내 보관 목록 = 개인 데이터), 인증 4분기(§15).
  * 목업 saved.html 기준. 목록은 "아직 PUBLIC 인 카드만" 온다(비공개 전환은 백엔드 자동 숨김).
- * "보고서 열기"는 타인 공개 카드 단건 API가 아직 없어 만들지 않는다(죽은 링크 금지, 후속 협의) —
- * 작성자 프로필로만 이동한다. 조회수·좋아요 수는 이 API 응답에 없으므로 표기하지 않는다.
+ * 카드 제목·"보고서 열기"는 상세(/report/{publicId})로 간다 — 처음(07-31)엔 타인 공개 카드
+ * 단건 API가 없어 링크를 안 달았지만, 08-04 타인·게스트 공개 카드 상세(#30)로 열렸다.
+ * 목록엔 PUBLIC 카드만 오므로 상세에서 404 를 만날 일은 비공개 전환 직후 정도다(상세가 처리).
+ * 조회수·좋아요 수는 이 API 응답에 없으므로 표기하지 않는다.
  */
 export function ScrapScreen() {
   const { status, refreshAuth } = useAuth();
@@ -162,6 +164,8 @@ function ScrapItem({ card, onRemoved }: { card: ScrapCard; onRemoved: () => void
   const [failed, setFailed] = useState(false);
   const at = formatScrappedAt(card.createdAt);
   const authorName = card.author.displayName?.trim() || "사용자";
+  // 상세 진입 — 공개 피드 카드(public-feed-card)와 같은 경로·패턴.
+  const detailHref = `/report/${card.publicId}`;
 
   function remove() {
     if (busy) return;
@@ -199,10 +203,23 @@ function ScrapItem({ card, onRemoved }: { card: ScrapCard; onRemoved: () => void
         </button>
       </div>
 
+      {/* 제목 = 상세 링크 (피드 카드와 동일 관례 — hover 시 signal 색으로 눌리는 것임을 알린다) */}
       <h3 className="mb-2 text-lg leading-[1.45] font-bold tracking-[-0.01em] text-foreground">
-        {card.title}
+        <Link
+          href={detailHref}
+          className="focus-ring rounded-[3px] break-words hover:text-signal-ink"
+        >
+          {card.title}
+        </Link>
       </h3>
-      <p className="mb-3 text-sm leading-[1.7] text-ink-mid">{card.summary}</p>
+      <p className="mb-1 text-sm leading-[1.7] text-ink-mid">{card.summary}</p>
+      <Link
+        href={detailHref}
+        className="focus-ring mb-3 inline-block rounded-[3px] text-sm leading-[1.7] font-semibold text-muted-foreground hover:text-signal-ink"
+      >
+        보고서 열기
+        <span className="sr-only"> — {card.title}</span>
+      </Link>
 
       {card.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
