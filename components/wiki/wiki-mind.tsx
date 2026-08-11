@@ -17,20 +17,32 @@ import type { InterestDto } from "@/types/interest";
  * 관심사가 하나도 없는 대분류를 화면에 남길지.
  *
  * 원래 의도는 "이 서비스가 다루는 범위"를 보여주려고 빈 대분류도 남기는 것이었는데,
- * 지금은 agent 가 관심사에 taxonomy ID 를 붙여주지 않아 대부분이 [기타]로 떨어진다
+ * 지금은 agent 가 관심사에 taxonomy ID 를 붙여주지 않아 이름 대조에 실패한 것이 [기타]로 떨어진다
  * (2026-08-05 실측: 20건 중 20건). 그 상태로 빈 대분류 8개를 세우면 노이즈만 커져서 일단 접는다.
- * **agent 가 topicId 를 내려주기 시작하면 true 로 되돌린다** — 그때는 대분류가 실제로 채워진다.
+ *
+ * 08-11 에 AI 추정을 이 섹션에서 뺀 뒤로 [기타] 는 크게 줄었다 — 온보딩 선택 관심사는
+ * categoryId 가 정확해서 제 자리로 간다. 그래도 직접 입력한 이름은 여전히 대조에 기대므로
+ * 판단은 유지한다. **agent 가 topicId 를 내려주기 시작하면 true 로 되돌린다.**
  */
 const SHOW_EMPTY_CATEGORIES = false;
 
 /**
- * [AI가 이해한 지금의 나] — taxonomy 대분류로 묶어 보여준다(2026-08-05 우석 결정).
+ * [내 관심사 지도] — taxonomy 대분류로 묶어 보여준다(2026-08-05 우석 결정).
  *
  * 이전에는 AI 추론 태그 상위 4건만 나열해서 ⑴ 무엇을 기준으로 뽑힌 4개인지 알 수 없고
  * ⑵ 파악한 관심사 범위가 좁아 보이는 문제가 있었다. 이제 상한 없이 전부 보여주되
  * taxonomy 대분류(테크·IT / 비즈니스·경제 / …)로 묶는다.
  *
- * 데이터: AI 추론 태그(GET /api/wiki/tags, score=0~1 상대 강도) + 내 관심사(GET /api/interests).
+ * <b>AI 추정 태그는 여기 넣지 않는다 (2026-08-11 우석 — "난잡하다").</b>
+ * 그전까지 이 섹션은 AI 추론 태그와 내 관심사를 합쳐 보여줬는데, 그러면 화면이 같은 데이터를
+ * 세 번 보여주는 꼴이었다 — <b>이 섹션 = 왼쪽 [발견 후보] ∪ 오른쪽 [내 관심사]</b> 의 합집합.
+ * 게다가 노이즈가 전부 AI 추정 쪽에서 나왔다: 문서 파편이 관심사로 올라오고(`이명박`·`KT`·
+ * `AI 코어 오케스트레이터`), agent 가 taxonomy ID 를 안 줘서 그것들이 통째로 [기타]에 쌓였다.
+ * 내 관심사만 남기면 온보딩 선택분은 categoryId 가 정확해 대분류가 제대로 채워진다.
+ * <b>AI 가 찾은 후보는 사라지지 않는다</b> — 왼쪽 [AI가 최근 발견한 관심사] 패널이 전담한다.
+ *
+ * 데이터: 내 관심사(GET /api/interests). 강도 막대는 같은 이름의 AI 추론 태그가 있을 때만
+ * 그 score 를 빌려 쓴다(GET /api/wiki/tags — 표시용이고 분류에는 쓰지 않는다).
  * 분류 규칙은 lib/interest-category.ts 참조(온보딩 선택은 categoryId, 나머지는 이름 대조).
  */
 export function WikiMind({
@@ -43,13 +55,13 @@ export function WikiMind({
   myInterests: InterestDto[] | null;
 }) {
   return (
-    <section aria-label="AI가 이해한 지금의 나" className="mb-8">
+    <section aria-label="내 관심사 지도" className="mb-8">
       <div className="rounded-[14px] border border-border bg-card px-[18px] py-4">
         <h2 className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
-          AI가 이해한 지금의 나
+          내 관심사 지도
         </h2>
         <p className="mt-0.5 mb-3.5 text-[12.5px] leading-[1.6] text-muted-foreground">
-          주제별로 모아 봤어요 — 직접 추가·삭제한 관심사는 AI 추정보다 우선해요.
+          등록한 관심사를 주제별로 모아 봤어요. 막대는 저장한 자료에서 AI가 읽은 상대 강도예요.
         </p>
 
         <Body taxonomy={taxonomy} tags={tags} myInterests={myInterests} />
@@ -97,7 +109,13 @@ function Body({
   }
 
   const wikiTags = tags.status === "success" ? tags.data : [];
-  const groups = groupInterestsByCategory(taxonomy.data, wikiTags, myInterests);
+  /*
+    태그를 넘기는 건 **강도 막대를 살리기 위해서다** — 같은 이름의 AI 추론 태그가 있으면
+    merge 단계에서 score 를 물려받는다. 그 뒤 USER 만 남겨 AI 추정 전용 행을 걷어낸다
+    (합치기 전에 태그를 빼면 내 관심사가 전부 막대 없는 줄이 된다).
+  */
+  const groups = groupInterestsByCategory(taxonomy.data, wikiTags, myInterests)
+    .map((group) => ({ ...group, items: group.items.filter((item) => item.source === "USER") }));
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   if (total === 0) {
@@ -105,8 +123,8 @@ function Body({
       <StateView
         className="min-h-[160px]"
         icon={<IconEmptyDoc />}
-        title="아직 파악한 관심사가 없어요"
-        description="관심 자료를 저장하거나 관심사를 직접 추가하면 여기에 주제별로 정리돼요."
+        title="아직 등록한 관심사가 없어요"
+        description="아래 [AI가 최근 발견한 관심사]에서 추가하거나, 관심사를 직접 등록하면 여기에 주제별로 정리돼요."
       />
     );
   }
@@ -161,12 +179,9 @@ function MindRow({ item }: { item: CategoryItem }) {
   const width = item.score === null ? 0 : Math.max(8, Math.round(item.score * 100));
 
   /*
-    ≥360px 은 기존 한 줄 배치 그대로다: 이름(w-32) · 강도 막대(flex-1) · 출처(w-14) · 삭제(w-12).
-    그 아래에서는 고정폭 합(128+56+48 + gap 12×3 = 268px)이 320px 화면의 행 가용폭을 넘겨
-    가로 스크롤이 생겼다(실측 +9px). 폭을 더 깎으면 막대가 10px대로 뭉개지므로, 줄이는 대신
-    **막대만 다음 줄로 내린다**(flex-wrap + order-last + w-full):
-      1줄 — 이름(남은 폭 차지, 기존처럼 truncate) · 출처 · 삭제
-      2줄 — 강도 막대(전체 폭)
+    ≥360px 은 한 줄 배치다: 이름(w-32) · 강도 막대(flex-1).
+    좁은 화면에서는 고정폭이 행 가용폭을 넘겨 가로 스크롤이 생겼었다(실측 +9px). 폭을 더 깎으면
+    막대가 10px대로 뭉개지므로, 줄이는 대신 **막대만 다음 줄로 내린다**(flex-wrap + order-last + w-full).
     order 는 시각 순서만 바꾸므로 DOM·읽기 순서는 그대로고, 막대는 aria-hidden 이라 영향이 없다.
   */
   return (
@@ -187,13 +202,10 @@ function MindRow({ item }: { item: CategoryItem }) {
         </span>
       )}
       {/*
-        삭제 버튼은 두지 않는다(2026-08-11 우석). 추가·삭제는 아래 2열 패널(발견 후보 ↔ 내 관심사)이
-        전담하고, 이 섹션은 "AI 가 지금 나를 어떻게 보는가"를 읽는 자리다. 같은 조작을 두 군데 두면
-        어디서 해야 하는지 흔들리고 행도 좁아진다.
+        출처 라벨("내 관심사"/"AI 추정")은 없앴다(2026-08-11 우석) — 이제 이 섹션은 내 관심사만
+        보여주므로 모든 행이 같은 값이 되어, 8줄 내내 같은 단어가 반복되는 열이 됐다.
+        삭제 버튼도 두지 않는다 — 추가·삭제는 아래 2열 패널(발견 후보 ↔ 내 관심사)이 전담한다.
       */}
-      <span className="w-14 shrink-0 text-right text-[11.5px] text-muted-foreground">
-        {item.source === "USER" ? "내 관심사" : "AI 추정"}
-      </span>
     </li>
   );
 }
