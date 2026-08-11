@@ -146,6 +146,20 @@ export type BookmarkCreateData = {
 };
 
 /**
+ * GET /api/bookmarks 목록 항목 — 저장한 관심 자료 **원본**(BookmarkResponse, 2026-08-11 확인).
+ * 위키 반영 전에도 "저장 자체가 됐는지"를 보여주기 위한 것(우석 지적 — 저장 확인 UX 구멍).
+ * status 는 서버 enum 문자열을 해석하지 않고 담아만 둔다(화면 배지로 쓰지 않음 — 미검증 어휘).
+ */
+export type SavedBookmark = {
+  id: number;
+  url: string | null;
+  title: string | null;
+  summary: string | null;
+  status: string;
+  createdAt: string;
+};
+
+/**
  * 화면 카드 모델 — DTO에서 화면이 필요한 값만 옮긴 것. 어댑터(lib/adapters/card.ts)가 변환한다.
  * createdAt 은 표시용 문자열(createdAtLabel) + 정렬·집계용 ms 두 형태로 가진다.
  */

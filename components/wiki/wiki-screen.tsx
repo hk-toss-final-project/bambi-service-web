@@ -14,6 +14,7 @@ import { LlmWikiEntry } from "@/components/wiki/llm-wiki-entry";
 import { WikiFound } from "@/components/wiki/wiki-found";
 import { WikiMind } from "@/components/wiki/wiki-mind";
 import { WikiMyInterests } from "@/components/wiki/wiki-my-interests";
+import { WikiRecentSaves, useRecentSaves } from "@/components/wiki/wiki-recent-saves";
 import { useInterestTaxonomy } from "@/hooks/use-interest-taxonomy";
 import { useMyInterests, type MyInterestsState } from "@/hooks/use-my-interests";
 import { useWikiInterests, type WikiInterestsState } from "@/hooks/use-wiki-interests";
@@ -54,6 +55,7 @@ function WikiView() {
   const taxonomy = useInterestTaxonomy();
   const interests = useWikiInterests();
   const my = useMyInterests();
+  const recentSaves = useRecentSaves();
   const [amOpen, setAmOpen] = useState(false);
 
   const wikiTags = interests.status === "success" ? interests.data : null;
@@ -85,6 +87,8 @@ function WikiView() {
             />
             <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
             <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
+            {/* 저장 확인 스트립(08-11 우석) — 위키 반영 전에도 "저장 자체"가 여기 즉시 보인다. */}
+            <WikiRecentSaves state={recentSaves} />
             <LlmWikiEntry />
           </main>
 
@@ -92,12 +96,13 @@ function WikiView() {
         </div>
       </div>
 
-      {/* 저장 성공 시 위키 관심사를 재조회한다. Agent 직접 호출은 하지 않는다. */}
+      {/* 저장 성공 시 위키 관심사 + 최근 저장 스트립을 재조회한다 — 방금 넣은 자료가 즉시 보인다. */}
       <AddMaterialModal
         open={amOpen}
         onClose={() => setAmOpen(false)}
         onSaved={() => {
           interests.refetch();
+          recentSaves.refetch();
         }}
       />
     </div>
