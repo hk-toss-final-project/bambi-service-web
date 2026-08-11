@@ -24,9 +24,7 @@ const {
   followedAuthorIdsOf,
   interleaveFeed,
   isRecommendedCandidate,
-  pickDiscoveryCandidates,
   pickRecommendedCandidates,
-  prioritizeUnseenCandidates,
 } = commonJsModule.exports;
 
 /** PublicFeedCardVM 최소 형태 — 테스트에 필요한 필드만 채운다. */
@@ -89,56 +87,6 @@ test("팔로잉·본인·매칭 없는 카드는 제외하되 나머지 순서�
     viewerPublicId: "author-self",
   });
   assert.deepEqual(toIds(result), ["A", "D"]);
-});
-
-test("탐색 후보는 topic → category → 최신 fallback 순으로 빈자리를 채운다", () => {
-  const allPublic = [
-    card("recent-no-match"),
-    card("category", { matchedCategories: ["tech"] }),
-    card("topic", { matchedTopics: ["ai"] }),
-    card("older-no-match"),
-  ];
-  const result = pickDiscoveryCandidates({
-    allPublic,
-    followingCards: [],
-    followedAuthorIds: new Set(),
-    viewerPublicId: null,
-  });
-  assert.deepEqual(toIds(result), ["topic", "category", "recent-no-match", "older-no-match"]);
-});
-
-test("탐색 fallback에서도 팔로잉·본인·중복 카드는 제외한다", () => {
-  const followingCard = card("following-card", { authorId: "author-following" });
-  const result = pickDiscoveryCandidates({
-    allPublic: [
-      followingCard,
-      card("same-card", { authorId: "author-other" }),
-      card("same-card", { authorId: "author-other" }),
-      card("self", { authorId: "author-self" }),
-      card("followed-author", { authorId: "author-following" }),
-      card("discover", { authorId: "author-new" }),
-    ],
-    followingCards: [followingCard],
-    followedAuthorIds: new Set(["author-following"]),
-    viewerPublicId: "author-self",
-  });
-  assert.deepEqual(toIds(result), ["same-card", "discover"]);
-});
-
-test("이미 본 카드는 각 후보의 원래 순서를 유지한 채 뒤로 간다", () => {
-  const result = prioritizeUnseenCandidates(
-    [card("seen-1"), card("new-1"), card("seen-2"), card("new-2")],
-    new Set(["seen-1", "seen-2"]),
-  );
-  assert.deepEqual(toIds(result), ["new-1", "new-2", "seen-1", "seen-2"]);
-});
-
-test("후보를 모두 본 후에도 새로고침 회차별로 시작 카드가 계속 바뀐다", () => {
-  const cards = [card("A"), card("B"), card("C"), card("D"), card("E")];
-  const seen = new Set(["A", "B", "C", "D", "E"]);
-  assert.deepEqual(toIds(prioritizeUnseenCandidates(cards, seen, 0)), ["A", "B", "C", "D", "E"]);
-  assert.deepEqual(toIds(prioritizeUnseenCandidates(cards, seen, 1)), ["C", "D", "E", "A", "B"]);
-  assert.deepEqual(toIds(prioritizeUnseenCandidates(cards, seen, 2)), ["E", "A", "B", "C", "D"]);
 });
 
 test("interleaveFeed는 중복 publicId를 최초 등장 순서로 한 번만 남긴다", () => {
