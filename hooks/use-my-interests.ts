@@ -23,7 +23,8 @@ export function useMyInterests(): MyInterestsState & { refetch: () => void } {
   const { status } = useAuth();
   const enabled = status === "authenticated";
   const fetcher = useCallback((signal: AbortSignal) => fetchUserInterests(signal), []);
-  const state = useAsyncData<InterestDto[]>(fetcher, enabled);
+  // 추가·삭제 후 재조회에서 목록이 스켈레톤으로 깜빡이지 않게 이전 데이터를 유지한다(우석 08-11).
+  const state = useAsyncData<InterestDto[]>(fetcher, enabled, true);
 
   if (state.status === "success") return { status: "success", data: state.data, refetch: state.refetch };
   if (state.status === "error") return { status: "error", refetch: state.refetch };

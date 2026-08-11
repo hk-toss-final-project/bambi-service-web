@@ -25,9 +25,21 @@ type Settled<T> =
   | { fetcher: unknown; reload: number; status: "success"; data: T }
   | { fetcher: unknown; reload: number; status: "error" };
 
+/**
+ * @param keepPreviousData refetch 중에도 직전 성공 데이터를 유지할지 (기본 false).
+ *
+ * 목록에서 항목을 추가·삭제한 뒤 재조회할 때 기본 동작(loading 복귀)은 섹션이 통째로
+ * 스켈레톤으로 바뀌어 **화면이 새로고침된 것처럼 깜빡인다**(2026-08-11 우석 지적, /wiki 삭제).
+ * true 면 새 응답이 올 때까지 이전 목록을 그대로 두고 조용히 교체한다.
+ *
+ * ⚠️ **fetcher 가 바뀐 경우에는 유지하지 않는다** — 다른 대상(다른 사용자·다른 id)의 데이터를
+ * 잠시라도 보여주면 안 되기 때문이다. 유지하는 건 같은 fetcher 의 재조회(reload)뿐이다.
+ * 기본값이 false 라 기존 호출부 동작은 그대로다(opt-in).
+ */
 export function useAsyncData<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   enabled: boolean,
+  keepPreviousData = false,
 ): AsyncState<T> & { refetch: () => void } {
   const [reload, setReload] = useState(0);
   const [settled, setSettled] = useState<Settled<T> | null>(null);
@@ -60,6 +72,10 @@ export function useAsyncData<T>(
     return settled.status === "success"
       ? { status: "success", data: settled.data, refetch }
       : { status: "error", refetch };
+  }
+  // 재조회 중(같은 fetcher, reload 만 증가)이고 직전 성공 데이터가 있으면 그대로 보여준다.
+  if (keepPreviousData && settled?.status === "success" && settled.fetcher === fetcher) {
+    return { status: "success", data: settled.data, refetch };
   }
   return { status: "loading", refetch };
 }

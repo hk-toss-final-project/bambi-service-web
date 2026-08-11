@@ -83,12 +83,8 @@ function WikiView() {
               </p>
             </header>
 
-            <WikiMind
-              taxonomy={taxonomy}
-              tags={interests}
-              myInterests={myInterests}
-              onChanged={my.refetch}
-            />
+            {/* 읽기 전용 — 추가·삭제는 아래 2열 패널이 전담한다(2026-08-11 우석). */}
+            <WikiMind taxonomy={taxonomy} tags={interests} myInterests={myInterests} />
             {/*
               발견 후보(왼쪽) ↔ 내 관심사(오른쪽) 2열 (2026-08-11 우석).
               추가하면 왼쪽에서 사라지고 오른쪽에 나타나므로 두 목록의 관계가 눈으로 읽힌다.

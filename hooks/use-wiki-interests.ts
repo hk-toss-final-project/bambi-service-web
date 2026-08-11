@@ -25,7 +25,8 @@ export function useWikiInterests(requested = true): WikiInterestsState & { refet
   const { status } = useAuth();
   const enabled = requested && status === "authenticated";
   const fetcher = useCallback((signal: AbortSignal) => fetchWikiTags(signal), []);
-  const state = useAsyncData<WikiTag[]>(fetcher, enabled);
+  // 관심사 추가·삭제 후 재조회에서 발견 목록이 깜빡이지 않게 이전 데이터를 유지한다(우석 08-11).
+  const state = useAsyncData<WikiTag[]>(fetcher, enabled, true);
 
   if (state.status === "success") {
     return state.data.length > 0
