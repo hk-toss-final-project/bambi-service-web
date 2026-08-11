@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { Orb } from "@/components/brand/orb";
@@ -44,9 +44,16 @@ function parseTab(value: string | null): HomeTab {
   return value === FEED_TAB_VALUE ? "rec" : HOME_INITIAL_TAB;
 }
 
-/** 개발 서버에서는 기본 노출하고, 운영 빌드에서 명시적으로 false를 주면 제거한다. */
+/**
+ * 개발용 리포트 트리거 패널 — **명시적으로 켤 때만** 노출한다 (2026-08-11 우석).
+ *
+ * 원래는 "기본 노출 + 운영 빌드에서 false 주입"이었는데, 배포 워크플로에 그 변수가 없어
+ * **운영 화면에 그대로 실렸다**("실제 리포트와 알림이 생성되며 LLM 비용이 발생합니다"가
+ * 실사용자에게 보임). 빠뜨리면 새는 기본값 대신, 빠뜨리면 안 보이는 기본값으로 뒤집는다.
+ * 로컬 개발은 `.env.local` 에 NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED=true 한 줄이면 그대로 쓴다.
+ */
 const DEVELOPMENT_REPORT_TRIGGERS_ENABLED =
-  process.env.NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED !== "false";
+  process.env.NEXT_PUBLIC_DEV_REPORT_TRIGGER_ENABLED === "true";
 
 /**
  * 홈 화면 — 인증 상태별로 명확히 분기(§15). 상세(report-screen)와 동일한 4분기.
@@ -71,29 +78,37 @@ function HomeView({ isMember }: { isMember: boolean }) {
   // 유효 탭을 항상 "rec"(공개 피드)로 강제한다 → effectiveTab 하나를 aria-selected·hidden·렌더 분기에
   // 공통 사용해 "선택된 탭 = 표시되는 패널"이 항상 일치한다. member↔guest 전환 동기화 effect 불필요.
   // 탭은 URL 이 소유한다(로컬 state 아님) — 새로고침·뒤로가기·링크 공유에서 선택이 유지된다.
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const tab = parseTab(searchParams.get(TAB_QUERY_KEY));
+  /**
+   * 탭의 소유자는 **로컬 상태**이고 URL 은 그 사본이다 (2026-08-11 2차 수정).
+   *
+   * 처음엔 URL 을 단일 소유자로 뒀는데(`tab = parseTab(searchParams)`), [피드] → [내 보고서] 전환이
+   * 아예 안 먹었다 — 기본 탭은 쿼리를 지우는 방식(`/?tab=feed` → `/`)이라 라우터가 같은 경로로 보고
+   * 리렌더를 건너뛰기 때문이다. 상태를 먼저 바꾸면 클릭은 라우터 동작과 무관하게 항상 즉시 반영되고,
+   * URL 은 새로고침·공유용 사본으로만 따라온다. 최초값만 URL 에서 읽는다.
+   */
+  const [tab, setTab] = useState<HomeTab>(() => parseTab(searchParams.get(TAB_QUERY_KEY)));
   const [amOpen, setAmOpen] = useState(false);
 
   /**
-   * 탭 전환 — replace 를 쓴다. push 면 탭을 몇 번 눌렀는지가 뒤로가기 히스토리에 그대로 쌓여
-   * "뒤로 = 이전 화면"이라는 기대가 깨진다(같은 화면 안의 전환이라 히스토리 항목이 아니다).
-   * scroll:false 로 전환 시 스크롤이 맨 위로 튀지 않게 한다.
+   * 탭 전환 — 상태를 먼저 바꾸고 URL 을 맞춘다. history 는 replace 다: push 면 탭을 몇 번 눌렀는지가
+   * 뒤로가기 히스토리에 쌓여 "뒤로 = 이전 화면" 기대가 깨진다(같은 화면 안의 전환이므로).
+   * 라우터 대신 history API 를 직접 쓰는 이유는 위와 같다 — 쿼리만 바뀌는 전환에서 라우터가
+   * 리렌더를 건너뛰어도 상태는 이미 바뀌어 있어야 한다. 스크롤도 튀지 않는다.
    */
   const selectTab = useCallback(
     (next: HomeTab) => {
-      const params = new URLSearchParams(searchParams.toString());
+      setTab(next);
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
       if (next === HOME_INITIAL_TAB) {
-        params.delete(TAB_QUERY_KEY);
+        url.searchParams.delete(TAB_QUERY_KEY);
       } else {
-        params.set(TAB_QUERY_KEY, FEED_TAB_VALUE);
+        url.searchParams.set(TAB_QUERY_KEY, FEED_TAB_VALUE);
       }
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      window.history.replaceState(null, "", url.toString());
     },
-    [router, pathname, searchParams],
+    [],
   );
 
   // 로고 재클릭 시 홈을 최초 진입 상태로 되돌린다 — 현재 구조에서 탭에 종속된 로컬 상태는 tab 뿐이다.
