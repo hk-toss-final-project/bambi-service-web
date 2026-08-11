@@ -15,8 +15,9 @@ import { MOCK_FEED_END } from "@/lib/mock/feed";
  * - 내 관심사와 태그가 맞는, 팔로우하지 않은 다른 작성자의 PUBLIC 카드
  * 게스트는 기존처럼 전체 공개 카드(`following=false`)만 본다.
  *
- * 혼합·중복 제거·shuffle 은 렌더 밖에서 처리한다: 순수 함수는 lib/feed-mix.ts, 조회·shuffle 시점은
- * hooks/use-public-feed.ts 가 담당한다. 이 컴포넌트는 상태별 렌더만 한다.
+ * 혼합·중복 제거는 렌더 밖에서 처리한다: 순수 함수는 lib/feed-mix.ts, 조회는 hooks/use-public-feed.ts
+ * 가 담당한다. 추천 카드 순서는 서버가 정하고(service-api #86) 프론트는 섞지 않는다. 이 컴포넌트는
+ * 상태별 렌더만 한다.
  *
  * 카드에 "추천 사유"·"관심사 일치" 같은 문구를 새로 붙이지 않는다 — 어떤 카드가 팔로잉이고 어떤
  * 카드가 추천인지 화면에서 구분해 표시하지 않는다(서버가 그런 라벨을 주지 않는다).
