@@ -167,7 +167,9 @@ function FoundChip({
   return (
     <span
       // 근거 문구는 칩에 다 못 쓰므로 title 로 남긴다(정보 유실 없음).
-      title={reason}
+      // 실패해도 이름을 지우지 않는다(2026-08-11) — 이름을 문구로 갈아끼우면 어느 칩이 실패했는지
+      // 알 수 없고 다시 누를 대상도 못 찾는다. 테두리 색과 title 로만 알린다.
+      title={failed ? "처리하지 못했어요. 다시 눌러 주세요." : reason}
       className={`inline-flex max-w-full items-center rounded-full border text-[12.5px] font-semibold whitespace-nowrap ${
         failed
           ? "border-destructive text-destructive"
@@ -182,7 +184,7 @@ function FoundChip({
         aria-label={`${name} 내 관심사로 추가`}
         className="focus-ring inline-flex min-w-0 items-center gap-1.5 rounded-full py-1.5 pr-1 pl-3 hover:text-signal-ink disabled:cursor-not-allowed"
       >
-        <span className="min-w-0 truncate">{failed ? "실패 — 다시" : name}</span>
+        <span className="min-w-0 truncate">{name}</span>
         <span aria-hidden="true" className="shrink-0 text-muted-foreground">
           ＋
         </span>
