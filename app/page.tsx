@@ -15,7 +15,15 @@ export const metadata: Metadata = {
  * guest 최소 UI(비로그인 헤더·피드 단일 탭·가입 유도 모달 #guest-modal)는 P0 —
  * 인증 상태 계층(AuthProvider)과 함께 구현 예정. 목업: variants/home-feed-guest.html.
  */
-export default function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const rawTab = (await searchParams).tab;
+  const requestedTab = Array.isArray(rawTab) ? rawTab[0] : rawTab;
+  const initialTab = requestedTab === "feed" ? "rec" : "mine";
+
   return (
     <Suspense
       fallback={
@@ -24,7 +32,7 @@ export default function HomePage() {
         </main>
       }
     >
-      <HomeScreen />
+      <HomeScreen initialTab={initialTab} />
     </Suspense>
   );
 }

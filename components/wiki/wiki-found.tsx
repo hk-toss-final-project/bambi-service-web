@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ERROR_CODES } from "@/constants/errors";
 import { ApiError } from "@/lib/api-client";
 import { createInterest } from "@/lib/repositories/interests";
+import { blockWikiTag } from "@/lib/repositories/wiki";
 import type { WikiInterestsState } from "@/hooks/use-wiki-interests";
 import type { InterestDto } from "@/types/interest";
 
@@ -34,12 +35,15 @@ export function WikiFound({
   myInterests,
   removedNames,
   onAdded,
+  onHidden,
 }: {
   tags: WikiInterestsState & { refetch: () => void };
   myInterests: InterestDto[] | null;
   /** 이번 화면에서 내 관심사에서 뺀 이름 — 서버 태그가 사라져도 되돌릴 수 있게 후보로 남긴다. */
   removedNames: readonly string[];
   onAdded: (name: string) => void;
+  /** 숨긴 이름 — 서버에 저장되므로 화면은 목록만 다시 읽으면 된다. */
+  onHidden: (name: string) => void;
 }) {
   if (tags.status !== "success" || myInterests === null) return null;
 
@@ -89,7 +93,7 @@ export function WikiFound({
         <span className="text-[12px] font-semibold text-muted-foreground">{candidates.length}건</span>
       </h2>
       <p className="mt-1 mb-3 text-[12.5px] leading-[1.6] text-muted-foreground">
-        저장한 자료에서 AI가 찾은 주제예요. 누르면 내 관심사로 옮겨가요.
+        저장한 자료에서 AI가 찾은 주제예요. 누르면 내 관심사로 옮겨가고, ×를 누르면 목록에서 숨겨요.
       </p>
       <div className="flex flex-wrap gap-2">
         {candidates.map((candidate) => (
@@ -98,6 +102,7 @@ export function WikiFound({
             name={candidate.name}
             reason={candidate.reason}
             onAdded={onAdded}
+            onHidden={onHidden}
           />
         ))}
       </div>
@@ -117,10 +122,12 @@ function FoundChip({
   name,
   reason,
   onAdded,
+  onHidden,
 }: {
   name: string;
   reason?: string;
   onAdded: (name: string) => void;
+  onHidden: (name: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -142,26 +149,54 @@ function FoundChip({
       .finally(() => setBusy(false));
   }
 
+  function hide() {
+    if (busy) return;
+    setBusy(true);
+    setFailed(false);
+    blockWikiTag(name)
+      .then(() => onHidden(name))
+      .catch(() => setFailed(true))
+      .finally(() => setBusy(false));
+  }
+
+  /*
+    칩 하나에 동작 두 개다(2026-08-11 우석) — 이름 부분은 "내 관심사로 추가", × 는 "숨기기".
+    버튼 중첩(button in button)은 HTML 위반이라 형제 버튼 둘을 한 껍데기 안에 넣고,
+    껍데기(span)가 테두리·배경을 그린다. 포커스는 각 버튼이 따로 받는다.
+  */
   return (
-    <button
-      type="button"
-      onClick={add}
-      disabled={busy}
-      aria-busy={busy}
+    <span
       // 근거 문구는 칩에 다 못 쓰므로 title 로 남긴다(정보 유실 없음).
       title={reason}
-      aria-label={`${name} 내 관심사로 추가`}
-      // 칩은 카드 배경 위에 놓이므로 bg-background 로 한 톤 낮춰 경계를 만든다(온디맨드 칩과 동일).
-      className={`focus-ring inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap disabled:opacity-50 ${
+      className={`inline-flex max-w-full items-center rounded-full border text-[12.5px] font-semibold whitespace-nowrap ${
         failed
           ? "border-destructive text-destructive"
-          : "border-border bg-background text-foreground hover:border-primary hover:text-signal-ink"
-      }`}
+          : "border-border bg-background text-foreground hover:border-primary"
+      } ${busy ? "opacity-50" : ""}`}
     >
-      <span className="min-w-0 truncate">{failed ? "추가 실패 — 다시" : name}</span>
-      <span aria-hidden="true" className="shrink-0 text-muted-foreground">
-        ＋
-      </span>
-    </button>
+      <button
+        type="button"
+        onClick={add}
+        disabled={busy}
+        aria-busy={busy}
+        aria-label={`${name} 내 관심사로 추가`}
+        className="focus-ring inline-flex min-w-0 items-center gap-1.5 rounded-full py-1.5 pr-1 pl-3 hover:text-signal-ink disabled:cursor-not-allowed"
+      >
+        <span className="min-w-0 truncate">{failed ? "실패 — 다시" : name}</span>
+        <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+          ＋
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={hide}
+        disabled={busy}
+        aria-label={`${name} 발견 목록에서 숨기기`}
+        title="이 주제 숨기기"
+        className="focus-ring rounded-full py-1.5 pr-2.5 pl-1 text-[13px] text-muted-foreground hover:text-destructive disabled:cursor-not-allowed"
+      >
+        ×
+      </button>
+    </span>
   );
 }

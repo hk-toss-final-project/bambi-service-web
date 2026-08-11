@@ -10,14 +10,13 @@ import { MOCK_FEED_END } from "@/lib/mock/feed";
 /**
  * [피드] 탭 — 공개 피드 실데이터. **하나의 목록**이고 사용자가 고르는 내부 탭·chip 은 없다.
  *
- * 로그인 사용자의 목록에는 두 종류가 섞여 있다(팔로잉 2 : 추천 1, 최대 20개):
+ * 로그인 사용자의 목록에는 두 종류가 섞여 있다(팔로잉 2 : 탐색 1, 최대 20개):
  * - 내가 팔로우한 작성자의 PUBLIC 카드
- * - 내 관심사와 태그가 맞는, 팔로우하지 않은 다른 작성자의 PUBLIC 카드
- * 게스트는 기존처럼 전체 공개 카드(`following=false`)만 본다.
+ * - 내 관심 topic/category가 맞는 카드, 부족하면 새로운 작성자의 최신 PUBLIC 카드
+ * 게스트는 전체 공개 카드에서 이미 본 카드를 뒤로 보낸 목록을 본다.
  *
  * 혼합·중복 제거는 렌더 밖에서 처리한다: 순수 함수는 lib/feed-mix.ts, 조회는 hooks/use-public-feed.ts
- * 가 담당한다. 추천 카드 순서는 서버가 정하고(service-api #86) 프론트는 섞지 않는다. 이 컴포넌트는
- * 상태별 렌더만 한다.
+ * 가 담당한다. 이 컴포넌트는 상태별 렌더와 “다른 추천 보기” 진입만 담당한다.
  *
  * 카드에 "추천 사유"·"관심사 일치" 같은 문구를 새로 붙이지 않는다 — 어떤 카드가 팔로잉이고 어떤
  * 카드가 추천인지 화면에서 구분해 표시하지 않는다(서버가 그런 라벨을 주지 않는다).
@@ -65,9 +64,16 @@ export function FeedRec() {
         <PublicFeedCard key={card.publicId} card={card} />
       ))}
 
-      {/* .feed-end — 제목 한 줄만 둔다(PR #33에서 정리한 한 줄·간격 유지). */}
-      <div className="px-2.5 pt-4 pb-1.5 text-center">
+      {/* 현재 20개를 다 봤을 때 후보 50개 안의 아직 보지 않은 카드를 먼저 다시 불러온다. */}
+      <div className="flex flex-col items-center gap-2 px-2.5 pt-4 pb-1.5 text-center">
         <div className="text-[13.5px] font-bold text-ink-mid">{MOCK_FEED_END.rec.title}</div>
+        <button
+          type="button"
+          onClick={retry}
+          className="focus-ring inline-flex items-center justify-center rounded-lg border border-border bg-card px-3.5 py-2 text-[12.5px] font-semibold text-ink-mid hover:bg-background hover:text-foreground"
+        >
+          다른 추천 보기
+        </button>
       </div>
     </div>
   );

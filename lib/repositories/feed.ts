@@ -27,15 +27,19 @@ import type { CardResponse, PublicFeedCardResponse } from "@/types/feed";
  * 헤더를 생략한다. 그래서 두 범위 모두 `{ auth: false }` 를 주지 않는다(팔로잉은 토큰이 필수이고,
  * 추천은 있으면 쓰고 없으면 게스트로 나간다).
  *
- * `limit` 은 서버 기본값(20)을 그대로 쓴다. 서버가 항상 page 0 만 돌려주고 커서·offset 이 없어
- * "다음 페이지" 개념이 없다 → 여기서도 페이지 파라미터를 만들지 않는다.
+ * `limit`은 1~50 범위로 보낸다. 기본은 서버 기본값과 같은 20이고, 로그인 혼합 피드는
+ * 관심사 필터 후 후보가 줄어드는 것을 막기 위해 50개를 요청한다. 서버가 page 0만 돌려주고
+ * 커서·offset이 없으므로 이 값은 페이지 크기가 아니라 탐색 후보 풀 크기다.
  */
 export function fetchPublicFeed({
   following = false,
+  limit = 20,
   signal,
-}: { following?: boolean; signal?: AbortSignal } = {}): Promise<PublicFeedCardResponse[]> {
-  // following=false 도 명시해 보낸다 — 서버 기본값과 같지만 요청만 보고 어느 범위인지 알 수 있다.
-  const path = `/api/feed/public?following=${following ? "true" : "false"}`;
+}: { following?: boolean; limit?: number; signal?: AbortSignal } = {}): Promise<PublicFeedCardResponse[]> {
+  const normalizedLimit = Number.isFinite(limit) ? Math.trunc(limit) : 20;
+  const safeLimit = Math.min(50, Math.max(1, normalizedLimit));
+  // following·limit 모두 명시해 요청 로그만 보고도 범위와 후보 풀 크기를 알 수 있게 한다.
+  const path = `/api/feed/public?following=${following ? "true" : "false"}&limit=${safeLimit}`;
   return apiGet<PublicFeedCardResponse[]>(path, { signal });
 }
 

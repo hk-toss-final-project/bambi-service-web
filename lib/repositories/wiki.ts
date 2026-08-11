@@ -1,5 +1,5 @@
 import { FALLBACK_ERROR_CODE } from "@/constants/errors";
-import { ApiError, apiDelete, apiGet } from "@/lib/api-client";
+import { ApiError, apiDelete, apiGet, apiPost } from "@/lib/api-client";
 import {
   toWikiDocumentDetail,
   toWikiDocuments,
@@ -156,4 +156,12 @@ export async function fetchWikiDocumentDetail(
     if (error instanceof ApiError && error.code === "NOT_FOUND") return { status: "notFound" };
     throw error;
   }
+}
+
+/**
+ * 발견 관심사 숨기기 — POST /api/wiki/tags/blocks (service-api #93, V27).
+ * 서버가 이름을 정규화해 저장하므로 화면은 표시 이름을 그대로 보낸다. 멱등.
+ */
+export async function blockWikiTag(name: string, signal?: AbortSignal): Promise<void> {
+  await apiPost<null>("/api/wiki/tags/blocks", { name }, { signal });
 }

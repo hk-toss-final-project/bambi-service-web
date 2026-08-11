@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { Orb } from "@/components/brand/orb";
@@ -39,21 +40,24 @@ const DEVELOPMENT_REPORT_TRIGGERS_ENABLED =
  * - authenticated→ member 홈([내 보고서]/[피드] 2탭·개인 사이드 레일)
  * - error        → 인증 복원 오류 UI + 재시도
  */
-export function HomeScreen() {
+export function HomeScreen({ initialTab = "mine" }: { initialTab?: HomeTab }) {
   const { status, refreshAuth } = useAuth();
 
   if (status === "loading") return <HomeSkeleton />;
   if (status === "error") return <HomeAuthError onRetry={refreshAuth} />;
 
-  return <HomeView isMember={status === "authenticated"} />;
+  return <HomeView isMember={status === "authenticated"} initialTab={initialTab} />;
 }
 
 /** 실제 홈 렌더 — member/guest 만 도달(loading·error 는 상위에서 처리). */
-function HomeView({ isMember }: { isMember: boolean }) {
-  // 원시 tab 은 member 의 선택만 담는다(기본 = 내 보고서). guest 는 [내 보고서] 탭이 없으므로
+function HomeView({ isMember, initialTab }: { isMember: boolean; initialTab: HomeTab }) {
+  const router = useRouter();
+  // 원시 tab 은 member 의 선택만 담는다. URL `?tab=feed`를 서버 page가 읽어
+  // 초기값으로 넘기므로, 브라우저 새로고침에도 [피드]가 [내 보고서]로 돌아가지 않는다.
+  // guest 는 [내 보고서] 탭이 없으므로
   // 유효 탭을 항상 "rec"(공개 피드)로 강제한다 → effectiveTab 하나를 aria-selected·hidden·렌더 분기에
   // 공통 사용해 "선택된 탭 = 표시되는 패널"이 항상 일치한다. member↔guest 전환 동기화 effect 불필요.
-  const [tab, setTab] = useState<HomeTab>("mine");
+  const [tab, setTab] = useState<HomeTab>(initialTab);
   const [amOpen, setAmOpen] = useState(false);
   // member [내 보고서] 탭 데이터를 HomeView 가 소유한다 → 저장 성공 시 refetch 를 저장 모달과 공유(§4).
   // guest 는 useMemberFeed / useMyReportJobs 내부 enabled=false 라 API 를 호출하지 않는다.
@@ -85,6 +89,18 @@ function HomeView({ isMember }: { isMember: boolean }) {
         : undefined;
   const effectiveTab: HomeTab = isMember ? tab : "rec";
 
+  function selectTab(next: HomeTab) {
+    setTab(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next === "rec") {
+      params.set("tab", "feed");
+    } else {
+      params.delete("tab");
+    }
+    const query = params.toString();
+    router.replace(query === "" ? "/" : `/?${query}`, { scroll: false });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* nav — 풀블리드(배경·보더 전체 폭), 내부는 1440 정렬 */}
@@ -105,11 +121,11 @@ function HomeView({ isMember }: { isMember: boolean }) {
               className="sticky top-4 z-20 mb-4 flex overflow-hidden rounded-[14px] border border-border bg-card"
             >
               {isMember && (
-                <TabButton id="mine" active={effectiveTab === "mine"} onSelect={() => setTab("mine")}>
+                <TabButton id="mine" active={effectiveTab === "mine"} onSelect={() => selectTab("mine")}>
                   내 보고서
                 </TabButton>
               )}
-              <TabButton id="rec" active={effectiveTab === "rec"} onSelect={() => setTab("rec")}>
+              <TabButton id="rec" active={effectiveTab === "rec"} onSelect={() => selectTab("rec")}>
                 피드
               </TabButton>
             </div>

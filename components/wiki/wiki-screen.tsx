@@ -89,6 +89,20 @@ function WikiView() {
     [my],
   );
 
+  /**
+   * 숨김 성공 — 서버(V27)에 저장됐으므로 위키 태그를 다시 읽으면 목록에서 빠진다.
+   * 세션 기억(removedNames)에도 남아 있으면 계속 후보로 뜨므로 함께 지운다.
+   */
+  const handleHidden = useCallback(
+    (name: string) => {
+      setRemovedNames((current) =>
+        current.filter((n) => n.trim().toLowerCase() !== name.trim().toLowerCase()),
+      );
+      interests.refetch();
+    },
+    [interests],
+  );
+
   /** 되돌리기(재추가) 성공 — 기억에서 지우고 목록을 다시 읽는다. */
   const handleAdded = useCallback(
     (name: string) => {
@@ -131,6 +145,7 @@ function WikiView() {
                 myInterests={myInterests}
                 removedNames={removedNames}
                 onAdded={handleAdded}
+                onHidden={handleHidden}
               />
               <WikiMyInterests state={my} wikiTags={wikiTags} onRemoved={handleRemoved} />
             </div>
