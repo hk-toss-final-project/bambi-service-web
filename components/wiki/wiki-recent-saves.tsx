@@ -34,12 +34,14 @@ export function WikiRecentSaves({ state }: { state: RecentSavesState }) {
   }
   if (state.status === "error") {
     return (
-      <section className="mb-4 rounded-[14px] border border-border bg-card px-[18px] py-3.5">
-        <span className="text-[12.5px] text-ink-mid">최근 저장한 자료를 불러오지 못했어요. </span>
+      <section className="rounded-[14px] border border-border bg-card px-4 py-[13px]">
+        <span className="text-[12px] leading-[1.6] text-ink-mid">
+          최근 저장한 자료를 불러오지 못했어요.{" "}
+        </span>
         <button
           type="button"
           onClick={state.refetch}
-          className="focus-ring rounded-[3px] text-[12.5px] font-semibold text-signal-ink"
+          className="focus-ring rounded-[3px] text-[12px] font-semibold text-signal-ink"
         >
           다시 시도
         </button>
@@ -52,28 +54,25 @@ export function WikiRecentSaves({ state }: { state: RecentSavesState }) {
 
   const recent = state.data.slice(0, RECENT_LIMIT);
   return (
-    <section className="mb-4 rounded-[14px] border border-border bg-card px-[18px] pt-4 pb-3">
-      <div className="mb-1 flex items-baseline justify-between gap-3">
-        <h3 className="text-[14px] font-bold text-foreground">최근 저장한 자료</h3>
-        <span className="text-[11.5px] text-muted-foreground">
-          총 {state.data.length}건 저장됨
-        </span>
+    // rail 패널 규격(WikiRail 의 .rpanel 과 동일) — 폭 300px 기준으로 짜인 레이아웃이다.
+    <section className="rounded-[14px] border border-border bg-card px-4 py-[15px]">
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <h3 className="text-[13px] font-bold text-foreground">최근 저장한 자료</h3>
+        <span className="shrink-0 text-[11.5px] text-muted-foreground">{state.data.length}건</span>
       </div>
-      <p className="mb-2.5 text-[12px] leading-[1.6] text-muted-foreground">
-        저장은 완료됐어요. AI 분석이 끝나면 나의 LLM Wiki에 요약과 함께 정리돼요.
+      <p className="mb-2 text-[11.5px] leading-[1.55] text-muted-foreground">
+        저장은 완료됐어요. AI 분석이 끝나면 아래 목록에 요약과 함께 정리돼요.
       </p>
       <ul>
         {recent.map((item) => (
-          <li
-            key={item.id}
-            className="flex items-baseline gap-3 border-t border-border py-2 first:border-t-0"
-          >
-            <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
+          <li key={item.id} className="border-t border-border py-1.5 first:border-t-0">
+            {/* rail 은 좁아서 제목·시각을 한 줄에 두면 제목이 심하게 잘린다 → 두 줄로 쌓는다. */}
+            <div className="truncate text-[12.5px] font-semibold text-foreground">
               {displayName(item)}
-            </span>
-            <span className="shrink-0 text-[11.5px] text-muted-foreground">
+            </div>
+            <div className="text-[11px] text-muted-foreground">
               {formatSavedAt(item.createdAt)}
-            </span>
+            </div>
           </li>
         ))}
       </ul>

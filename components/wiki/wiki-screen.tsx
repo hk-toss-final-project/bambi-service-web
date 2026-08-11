@@ -14,7 +14,11 @@ import { LlmWikiEntry } from "@/components/wiki/llm-wiki-entry";
 import { WikiFound } from "@/components/wiki/wiki-found";
 import { WikiMind } from "@/components/wiki/wiki-mind";
 import { WikiMyInterests } from "@/components/wiki/wiki-my-interests";
-import { WikiRecentSaves, useRecentSaves } from "@/components/wiki/wiki-recent-saves";
+import {
+  WikiRecentSaves,
+  useRecentSaves,
+  type RecentSavesState,
+} from "@/components/wiki/wiki-recent-saves";
 import { useInterestTaxonomy } from "@/hooks/use-interest-taxonomy";
 import { useMyInterests, type MyInterestsState } from "@/hooks/use-my-interests";
 import { useWikiInterests, type WikiInterestsState } from "@/hooks/use-wiki-interests";
@@ -79,13 +83,6 @@ function WikiView() {
               </p>
             </header>
 
-            {/*
-              저장 확인 스트립(08-11 우석) — **본문 맨 위**다. 방금 ＋관심 자료로 저장한 사람이
-              페이지를 열자마자 "저장은 됐다"를 확인하는 게 목적이라, 관심사 목록 아래(스크롤 끝)에
-              두면 목적을 잃는다(첫 배치에서 실제로 안 보였다). 저장 이력이 없으면 스스로 숨어
-              기존 화면 상단을 어지럽히지 않는다.
-            */}
-            <WikiRecentSaves state={recentSaves} />
             <WikiMind
               taxonomy={taxonomy}
               tags={interests}
@@ -97,7 +94,7 @@ function WikiView() {
             <LlmWikiEntry />
           </main>
 
-          <WikiRail interests={interests} my={my} />
+          <WikiRail interests={interests} my={my} recentSaves={recentSaves} />
         </div>
       </div>
 
@@ -122,9 +119,11 @@ function WikiView() {
 function WikiRail({
   interests,
   my,
+  recentSaves,
 }: {
   interests: WikiInterestsState;
   my: MyInterestsState;
+  recentSaves: RecentSavesState;
 }) {
   const myCount = my.status === "success" ? my.data.length : null;
   const newThisWeek =
@@ -144,6 +143,12 @@ function WikiRail({
         <RailStat label="AI 추론 관심사" value={inferredCount} />
         <RailStat label="이번 주 신규" value={newThisWeek} />
       </div>
+      {/*
+        저장 확인(08-11 우석) — 본문 최상단에서 rail 로 옮겼다. 본문은 관심사 목록에 집중하고,
+        비어 있던 rail 이 "방금 저장한 게 들어왔나"를 곁눈으로 확인하는 자리를 맡는다.
+        저장 이력이 없으면 스스로 숨는다(rail 이 빈 박스로 남지 않는다).
+      */}
+      <WikiRecentSaves state={recentSaves} />
     </aside>
   );
 }

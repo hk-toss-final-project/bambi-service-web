@@ -123,65 +123,54 @@ function InterestCard({
       .finally(() => setBusy(false));
   }
 
-  const reasons = matched && matched.reasonMessages.length > 0 ? matched.reasonMessages.slice(0, 3) : null;
+  /**
+   * 근거 문구는 카드에 펼치지 않고 hover(title)로만 준다 (2026-08-11 우석 — 화면 정리).
+   * agent 가 주는 근거가 대부분 같은 상용구("저장한 자료에서 반복해 나타난 주제예요")라,
+   * 카드마다 "AI는 이렇게 이해했어요 + 같은 한 줄"이 반복되며 10건이면 화면 서너 개 분량이 됐다.
+   * 관심사별로 다른 정보는 이름·일치 여부·신뢰도뿐이므로 그 셋만 한 줄에 남긴다.
+   */
+  const reasonTitle = matched && matched.reasonMessages.length > 0
+    ? matched.reasonMessages.join(" · ")
+    : undefined;
 
   return (
-    // 근거가 없으면 한 줄 카드다 — 세로 여백을 줄여 목록이 촘촘하게 읽히게 한다.
-    <article
-      className={`rounded-[14px] border border-border bg-card px-[18px] ${reasons ? "py-4" : "py-3"}`}
-    >
-      <div className="flex items-center gap-2.5">
-        <span className="min-w-0 truncate text-[14px] font-bold text-foreground">{interest.name}</span>
+    // 한 줄 행 — 목록이 촘촘하게 읽히도록 카드 높이를 최소화한다.
+    <article className="rounded-[12px] border border-border bg-card px-[14px] py-2.5" title={reasonTitle}>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 truncate text-[13.5px] font-bold text-foreground">
+          {interest.name}
+        </span>
         {matched ? (
           <>
-            <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11.5px] font-semibold text-signal-ink">
-              ◈ LLM 추론 일치
+            <span className="shrink-0 rounded-full border border-border bg-background px-1.5 py-px text-[11px] font-semibold text-signal-ink">
+              ◈ AI 일치
             </span>
-            <span className="shrink-0 text-[11.5px] text-muted-foreground">
-              신뢰도 {Math.round(matched.confidence * 100)}%
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              {Math.round(matched.confidence * 100)}%
             </span>
           </>
         ) : (
-          <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11.5px] font-semibold text-ink-mid">
+          <span className="shrink-0 rounded-full border border-border bg-background px-1.5 py-px text-[11px] font-semibold text-ink-mid">
             직접 설정
           </span>
         )}
         <span className="flex-1" />
+        {failed && (
+          <span role="alert" className="shrink-0 text-[11.5px] text-signal-ink">
+            삭제 실패
+          </span>
+        )}
         <button
           type="button"
           onClick={remove}
           disabled={busy}
           aria-busy={busy}
-          className="focus-ring shrink-0 rounded-[8px] border border-border bg-background px-2.5 py-1 text-[12px] font-semibold text-ink-mid hover:text-signal-ink disabled:opacity-50"
+          aria-label={`${interest.name} 관심사 삭제`}
+          className="focus-ring shrink-0 rounded-[7px] border border-border bg-background px-2 py-0.5 text-[11.5px] font-semibold text-ink-mid hover:text-signal-ink disabled:opacity-50"
         >
           삭제
         </button>
       </div>
-
-      {/*
-        근거가 실제로 있을 때만 펼친다(2026-08-11 우석). 근거 없는 관심사에 "AI는 이렇게
-        이해했어요 → 직접 추가한 관심사예요"를 붙이면, 제목은 AI 이해를 약속하는데 내용은
-        "아직 없다"라 어색하고 카드마다 같은 문장이 반복돼 화면만 길어졌다.
-        해당 안내는 섹션 설명 한 줄로 올렸다.
-      */}
-      {reasons && (
-        <>
-          <div className="mt-2.5 text-[11.5px] font-bold tracking-wide text-muted-foreground uppercase">
-            AI는 이렇게 이해했어요
-          </div>
-          <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-4 text-[12.5px] leading-[1.6] text-ink-mid">
-            {reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {failed && (
-        <div role="alert" className="mt-2 text-[12px] text-signal-ink">
-          삭제하지 못했어요. 다시 시도해 주세요.
-        </div>
-      )}
     </article>
   );
 }
