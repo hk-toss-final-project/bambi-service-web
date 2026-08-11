@@ -34,12 +34,20 @@ export function WikiMyInterests({
 }) {
   return (
     <section aria-label="내 관심사" className="mb-8">
-      <h2 className="mb-2.5 flex items-baseline gap-2 text-[17px] font-bold tracking-[-0.01em] text-foreground">
+      <h2 className="flex items-baseline gap-2 text-[17px] font-bold tracking-[-0.01em] text-foreground">
         내 관심사
         {state.status === "success" && (
           <span className="text-[12px] font-semibold text-muted-foreground">{state.data.length}개</span>
         )}
       </h2>
+      {/*
+        안내는 섹션에 한 번만 둔다(2026-08-11 우석 — 화면 정리). 이전에는 카드마다
+        "직접 추가한 관심사예요 — 관련 자료를 저장하면 AI 이해가 깊어져요"가 똑같이 반복돼
+        10개면 같은 문장이 10번 나왔다. 카드에는 그 관심사에만 해당하는 근거만 남긴다.
+      */}
+      <p className="mt-1 mb-2.5 text-[12.5px] leading-[1.6] text-muted-foreground">
+        브리핑 주제로 쓰는 관심사예요. 관련 자료를 저장하면 AI가 근거를 찾아 함께 보여줘요.
+      </p>
 
       {state.status === "loading" && <FeedSkeleton />}
 
@@ -64,7 +72,7 @@ export function WikiMyInterests({
       )}
 
       {state.status === "success" && state.data.length > 0 && (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           {state.data.map((interest) => (
             <InterestCard
               key={interest.id}
@@ -118,7 +126,10 @@ function InterestCard({
   const reasons = matched && matched.reasonMessages.length > 0 ? matched.reasonMessages.slice(0, 3) : null;
 
   return (
-    <article className="rounded-[14px] border border-border bg-card px-[18px] py-4">
+    // 근거가 없으면 한 줄 카드다 — 세로 여백을 줄여 목록이 촘촘하게 읽히게 한다.
+    <article
+      className={`rounded-[14px] border border-border bg-card px-[18px] ${reasons ? "py-4" : "py-3"}`}
+    >
       <div className="flex items-center gap-2.5">
         <span className="min-w-0 truncate text-[14px] font-bold text-foreground">{interest.name}</span>
         {matched ? (
@@ -147,19 +158,23 @@ function InterestCard({
         </button>
       </div>
 
-      <div className="mt-2.5 text-[11.5px] font-bold tracking-wide text-muted-foreground uppercase">
-        AI는 이렇게 이해했어요
-      </div>
-      {reasons ? (
-        <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-4 text-[12.5px] leading-[1.6] text-ink-mid">
-          {reasons.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-1 text-[12.5px] leading-[1.6] text-ink-mid">
-          직접 추가한 관심사예요{matched ? "" : " — 관련 자료를 저장하면 AI 이해가 깊어져요"}.
-        </p>
+      {/*
+        근거가 실제로 있을 때만 펼친다(2026-08-11 우석). 근거 없는 관심사에 "AI는 이렇게
+        이해했어요 → 직접 추가한 관심사예요"를 붙이면, 제목은 AI 이해를 약속하는데 내용은
+        "아직 없다"라 어색하고 카드마다 같은 문장이 반복돼 화면만 길어졌다.
+        해당 안내는 섹션 설명 한 줄로 올렸다.
+      */}
+      {reasons && (
+        <>
+          <div className="mt-2.5 text-[11.5px] font-bold tracking-wide text-muted-foreground uppercase">
+            AI는 이렇게 이해했어요
+          </div>
+          <ul className="mt-1 flex list-disc flex-col gap-0.5 pl-4 text-[12.5px] leading-[1.6] text-ink-mid">
+            {reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </>
       )}
 
       {failed && (
