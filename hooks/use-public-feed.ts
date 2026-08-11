@@ -10,7 +10,6 @@ import {
   buildMixedFeed,
   followedAuthorIdsOf,
   pickRecommendedCandidates,
-  shuffled,
 } from "@/lib/feed-mix";
 import { fetchPublicFeed } from "@/lib/repositories/feed";
 import type { PublicFeedCardVM } from "@/types/feed";
@@ -23,21 +22,22 @@ import type { PublicFeedCardVM } from "@/types/feed";
  *
  * 로그인: 두 요청을 **한 fetcher 안에서** 병렬로 보내고 결과를 섞는다.
  *   - `GET /api/feed/public?following=true`  → 팔로잉 카드(서버 최신순 유지)
- *   - `GET /api/feed/public?following=false` → 전체 공개 카드(추천 후보 원천 — 각 카드의
- *     `matchedTopics`/`matchedCategories` 를 서버가 뷰어 기준으로 이미 계산해 함께 내려준다)
- *   팔로잉 2 : 추천 1 로 교차 배치하고 최대 20개(MIXED_FEED_LIMIT). 추천 슬롯은 1순위(topic 매칭)
- *   풀을 먼저 채우고, 부족할 때만 2순위(category 매칭만 있는) 풀로 보강한다(`lib/feed-mix.ts` 의
- *   `pickRecommendedCandidates` 참조).
+ *   - `GET /api/feed/public?following=false` → 전체 공개 카드(추천 후보 원천 — 서버가 뷰어의
+ *     좋아요·북마크 이력으로 개인화 순위를 계산해 **이미 정렬한 상태로** 내려준다, service-api #86.
+ *     각 카드의 `matchedTopics`/`matchedCategories` 도 함께 내려오지만 매칭 여부 판정에만 쓴다)
+ *   팔로잉 2 : 추천 1 로 교차 배치하고 최대 20개(MIXED_FEED_LIMIT). 추천 슬롯은 서버가 내려준
+ *   추천 목록을 앞에서부터 순서대로 소비한다 — 필터링(팔로잉·본인 제외) 이후 순서를 프론트가
+ *   다시 정하지 않는다(`lib/feed-mix.ts` 의 `pickRecommendedCandidates` 참조).
  *
  * **관심사 API 는 더 이상 조회하지 않는다**(service-api #81, 계약 A안 — 2026-08-11 변경).
  * 추천 후보 판정이 프론트의 이름 문자열 비교에서 서버 계산(`matchedTopics`/`matchedCategories`)으로
  * 바뀌면서, 뷰어의 관심사 목록을 프론트가 따로 들고 있을 이유가 없어졌다(판정은
  * `lib/feed-mix.ts` 의 `isRecommendedCandidate` 참조).
  *
- * **무작위 시점**: 추천 후보 shuffle 은 응답을 받은 직후 이 fetcher 안에서 1순위·2순위 풀별로
- * 각각 한 번만 한다(우선순위 순서는 유지하고 풀 내부만 섞는다). 렌더 중에 Math.random 을 다시
- * 부르지 않으므로 리렌더로 순서가 바뀌지 않고, refetch·새로고침(fetcher/reload 태그 변경)에서는
- * 새 순서가 나온다.
+ * **순서는 프론트가 만들지 않는다**(service-api #86 — 2026-08-11 변경). 이전에는 응답을 받은
+ * 직후 추천 후보를 shuffle 했지만, 서버가 개인화 순위를 응답 순서에 반영하면서 프론트가 다시
+ * 섞으면 그 순위가 사라진다. 지금은 `pickRecommendedCandidates` 가 필터링만 하고 `allPublic`
+ * 순서를 그대로 보존한다 — 같은 입력이면 항상 같은 결과가 나온다(결정적).
  *
  * **부분 실패 정책**(Promise.allSettled 로 각 요청을 독립 평가):
  *   - 팔로잉 성공 + 전체 공개 실패 → 팔로잉 카드만 표시
@@ -90,16 +90,13 @@ export function usePublicFeed(): PublicFeedState & { refetch: () => void } {
 
       let recommendedCards: PublicFeedCardVM[] = [];
       if (allPublic !== null) {
-        const { primary, secondary } = pickRecommendedCandidates({
+        // 필터링(팔로잉·본인 제외, 매칭 여부)만 하고 allPublic 순서(서버 개인화 순위)를 그대로 쓴다.
+        recommendedCards = pickRecommendedCandidates({
           allPublic,
           followingCards: followingCards ?? [],
           followedAuthorIds: followedAuthorIdsOf(followingCards ?? []),
           viewerPublicId,
         });
-        // 응답 직후 풀별로 1회씩 shuffle — 이후 렌더에서는 이 순서가 고정된다.
-        // 1순위(topic 매칭) 뒤에 2순위(category 매칭)를 이어붙여, interleaveFeed 가 추천 슬롯을
-        // 채울 때 1순위를 먼저 소비하고 부족할 때만 2순위로 보강하게 한다.
-        recommendedCards = [...shuffled(primary), ...shuffled(secondary)];
       }
 
       if (followingCards === null && allPublic === null) {
