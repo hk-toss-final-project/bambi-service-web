@@ -5,7 +5,8 @@ import type { PublicFeedCardVM } from "@/types/feed";
  *
  * 로그인 사용자의 [피드]는 탭·chip 없이 하나의 목록이고, 그 안에
  *   ① 내가 팔로우한 작성자의 PUBLIC 카드(팔로잉)
- *   ② 내 관심사와 태그가 맞는, 팔로우하지 않은 다른 작성자의 PUBLIC 카드(추천)
+ *   ② 서버가 뷰어 기준으로 관심 topic/category 매칭을 표시한, 팔로우하지 않은 다른 작성자의
+ *      PUBLIC 카드(추천 — matchedTopics/matchedCategories, service-api #81)
  * 를 팔로잉 2 : 추천 1 비율로 섞는다.
  *
  * 여기 있는 함수는 전부 입력만 보고 결과를 내는 순수 함수다(무작위는 주입받는다) →
@@ -20,69 +21,41 @@ const FOLLOWING_PER_CYCLE = 2;
 const RECOMMENDED_PER_CYCLE = 1;
 
 /**
- * 태그·관심사 비교 키 — 양쪽 trim 후 대소문자 차이를 무시한다.
- * `toLowerCase()` 는 로케일 규칙을 타지 않아 태그 비교에 안전하다(한글은 영향 없음).
- * 빈 문자열은 키로 쓰지 않는다(호출부가 걸러낸다).
+ * 추천 후보 판정 — 서버가 뷰어 기준으로 이미 계산해 내려준 매칭 결과만 본다(service-api #81,
+ * 계약 A안). **topic 이 하나라도 있으면 추천 후보.** topic 매칭이 없을 때만 category(넓은 매칭,
+ * recall 안전망)를 본다. 이름 문자열 비교·프론트 자체 매칭 계산은 하지 않는다.
+ * 둘 다 비어 있으면(게스트·비매칭·롤아웃 전 카드·필드 미배포) 후보가 아니다(가짜 추천 금지).
  */
-export function toTagKey(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-/** 문자열 배열 → 비교 키 Set. 비문자열·공백뿐인 항목은 버린다. */
-export function toTagKeySet(values: readonly unknown[] | null | undefined): Set<string> {
-  const keys = new Set<string>();
-  if (!Array.isArray(values)) return keys;
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const key = toTagKey(value);
-    if (key !== "") keys.add(key);
-  }
-  return keys;
-}
-
-/** 카드 태그 중 하나라도 관심사 키에 걸리면 true. 관심사가 비면 항상 false(가짜 추천 금지). */
-export function matchesInterests(
-  card: PublicFeedCardVM,
-  interestKeys: ReadonlySet<string>,
-): boolean {
-  if (interestKeys.size === 0) return false;
-  for (const tag of card.tags) {
-    if (interestKeys.has(toTagKey(tag))) return true;
-  }
-  return false;
+export function isRecommendedCandidate(card: PublicFeedCardVM): boolean {
+  if (card.matchedTopics.length > 0) return true;
+  return card.matchedCategories.length > 0;
 }
 
 /**
- * 추천 후보 선별 — "내 관심사와 태그가 맞는, 내가 팔로우하지 않은 남의 공개 카드".
+ * 추천 후보 선별 — "서버가 매칭했다고 표시한, 내가 팔로우하지 않은 남의 공개 카드".
  *
  * 제외 기준:
- * - 태그가 내 USER 관심사와 하나도 안 맞는 카드 (관심사 0건이면 후보도 0건 — 전체 공개 카드로
- *   빈자리를 채우지 않는다. 관심사 기반 추천이라는 제품 규칙을 지키고 가짜 추천을 만들지 않는다.)
+ * - `isRecommendedCandidate` 가 false 인 카드(매칭 topic·category 모두 없음)
  * - 이미 팔로우한 작성자의 카드 (그건 팔로잉 몫이다)
  * - 로그인한 본인이 쓴 카드
  * - 이미 팔로잉 목록에 있는 카드(publicId 중복) → 팔로잉 우선 분류
  *
- * 작성자 publicId 가 없는 카드는 **제외하지 않는다** — 팔로우·본인 판정만 불가능할 뿐 관심사가
+ * 작성자 publicId 가 없는 카드는 **제외하지 않는다** — 팔로우·본인 판정만 불가능할 뿐 매칭이
  * 맞으면 정상 추천 후보다(화면의 중립 작성자 표시 규칙은 그대로 유지된다).
  */
 export function pickRecommendedCandidates({
   allPublic,
   followingCards,
-  interestNames,
   followedAuthorIds,
   viewerPublicId,
 }: {
   allPublic: readonly PublicFeedCardVM[];
   followingCards: readonly PublicFeedCardVM[];
-  interestNames: readonly string[];
   /** 팔로우 중인 작성자 publicId 집합. 보통 followingCards 에서 파생한다. */
   followedAuthorIds: ReadonlySet<string>;
   /** 로그인한 본인 publicId. 알 수 없으면 null(본인 카드 제외를 건너뛴다). */
   viewerPublicId: string | null;
 }): PublicFeedCardVM[] {
-  const interestKeys = toTagKeySet(interestNames);
-  if (interestKeys.size === 0) return [];
-
   const followingIds = new Set(followingCards.map((card) => card.publicId));
   const result: PublicFeedCardVM[] = [];
   for (const card of allPublic) {
@@ -90,7 +63,7 @@ export function pickRecommendedCandidates({
     const authorId = card.author.publicId;
     if (authorId !== null && followedAuthorIds.has(authorId)) continue; // 팔로우한 작성자
     if (authorId !== null && viewerPublicId !== null && authorId === viewerPublicId) continue; // 본인 카드
-    if (!matchesInterests(card, interestKeys)) continue;
+    if (!isRecommendedCandidate(card)) continue;
     result.push(card);
   }
   return result;

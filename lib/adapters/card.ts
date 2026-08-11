@@ -8,6 +8,8 @@ import type {
   CardSource,
   CardSourceVM,
   FeedCardVM,
+  MatchedCategory,
+  MatchedTopic,
   PublicFeedAuthorVM,
   PublicFeedCardResponse,
   PublicFeedCardVM,
@@ -248,14 +250,16 @@ export function toPublicFeedCardVM(
     sources: toCardSources(card.sources),
     createdAtLabel: typeof card.createdAt === "string" ? formatCreatedAt(card.createdAt) : "",
     tags: toCardTags(card.tags),
+    matchedTopics: toMatchedTopics(card.matchedTopics),
+    matchedCategories: toMatchedCategories(card.matchedCategories),
   };
 }
 
 /**
  * 관심사 태그 정규화 — 문자열이 아니거나 공백뿐인 항목을 버리고 trim 한 값만 남긴다.
- * 서버가 `tags` 를 아직 안 내려주는 배포본(키 없음)이나 null 이면 빈 배열이다 →
- * 관심사와 맞을 수 없으므로 그 카드는 추천 후보가 되지 않는다(가짜 추천 금지).
- * 대소문자 무시 비교는 lib/feed-mix.ts 의 toTagKey 가 담당한다(표시용 원문은 그대로 보존).
+ * 서버가 `tags` 를 아직 안 내려주는 배포본(키 없음)이나 null 이면 빈 배열이다.
+ * 카드의 관심사 메타 표시(첫 태그 + `+N`) 전용이며, 추천 후보 판정에는 쓰이지 않는다
+ * (판정은 matchedTopics/matchedCategories — 아래 toMatchedTopics/toMatchedCategories 참조).
  */
 export function toCardTags(tags: unknown): string[] {
   if (!Array.isArray(tags)) return [];
@@ -270,6 +274,39 @@ export function toCardTags(tags: unknown): string[] {
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(text);
+  }
+  return out;
+}
+
+/**
+ * 추천 매칭 topic 정규화(`types/feed.ts` MatchedTopic 참조) — 배열이 아니면 빈 배열, 항목별로
+ * `topicId`·`name` 이 둘 다 비어있지 않은 문자열일 때만 남긴다. 하나라도 어긋나는 항목은 그 항목만
+ * 건너뛴다(카드 전체를 실패로 만들지 않는다 — toPublicFeedCards 와 같은 규율). 필드 자체가 없는
+ * 배포본(service-api #81 머지 전 등)에서도 빈 배열이라 화면은 그대로 동작한다.
+ */
+export function toMatchedTopics(value: unknown): MatchedTopic[] {
+  if (!Array.isArray(value)) return [];
+  const out: MatchedTopic[] = [];
+  for (const entry of value) {
+    if (entry === null || typeof entry !== "object") continue;
+    const topicId = normalizeText((entry as { topicId?: unknown }).topicId);
+    const name = normalizeText((entry as { name?: unknown }).name);
+    if (topicId === null || name === null) continue;
+    out.push({ topicId, name });
+  }
+  return out;
+}
+
+/** 추천 후보 판정용(넓은 매칭) category 정규화 — `types/feed.ts` MatchedCategory 참조. */
+export function toMatchedCategories(value: unknown): MatchedCategory[] {
+  if (!Array.isArray(value)) return [];
+  const out: MatchedCategory[] = [];
+  for (const entry of value) {
+    if (entry === null || typeof entry !== "object") continue;
+    const categoryId = normalizeText((entry as { categoryId?: unknown }).categoryId);
+    const name = normalizeText((entry as { name?: unknown }).name);
+    if (categoryId === null || name === null) continue;
+    out.push({ categoryId, name });
   }
   return out;
 }
