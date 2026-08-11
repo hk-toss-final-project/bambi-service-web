@@ -7,7 +7,6 @@ import { ApiError } from "@/lib/api-client";
 import { createInterest } from "@/lib/repositories/interests";
 import type { WikiInterestsState } from "@/hooks/use-wiki-interests";
 import type { InterestDto } from "@/types/interest";
-import type { WikiTag } from "@/types/wiki";
 
 /**
  * 후보 표시 상한 — 강도순. 목업은 2건만 뒀지만 실사용에서 후보가 너무 적게 보여
@@ -32,16 +31,29 @@ const FOUND_LIMIT = 12;
 export function WikiFound({
   tags,
   myInterests,
+  removedNames,
   onAdded,
 }: {
   tags: WikiInterestsState & { refetch: () => void };
   myInterests: InterestDto[] | null;
-  onAdded: () => void;
+  /** 이번 화면에서 내 관심사에서 뺀 이름 — 서버 태그가 사라져도 되돌릴 수 있게 후보로 남긴다. */
+  removedNames: readonly string[];
+  onAdded: (name: string) => void;
 }) {
   if (tags.status !== "success" || myInterests === null) return null;
 
   const owned = new Set(myInterests.map((interest) => normalizeName(interest.name)));
-  const candidates = tags.data.filter((tag) => !owned.has(normalizeName(tag.tag))).slice(0, FOUND_LIMIT);
+  const fromTags = tags.data.filter((tag) => !owned.has(normalizeName(tag.tag)));
+  // 방금 뺀 이름 중 (a) 아직 내 관심사에 없고 (b) 서버 태그에도 안 남은 것만 덧붙인다.
+  // 서버가 태그를 갖고 있으면 fromTags 에 이미 있으므로 중복되지 않는다.
+  const tagNames = new Set(fromTags.map((tag) => normalizeName(tag.tag)));
+  const restorable = removedNames.filter(
+    (name) => !owned.has(normalizeName(name)) && !tagNames.has(normalizeName(name)),
+  );
+  const candidates = [
+    ...fromTags.map((tag) => ({ key: tag.tagId, name: tag.tag, reason: tag.reasonMessages[0] })),
+    ...restorable.map((name) => ({ key: `removed:${name}`, name, reason: undefined })),
+  ].slice(0, FOUND_LIMIT);
 
   // 후보 0건이어도 섹션을 통째로 지우지 않는다(2026-08-11 우석 — "발견 섹션이 어디 갔냐").
   // 전부 추가해서 비었을 뿐인데 흔적 없이 사라지면 고장으로 읽힌다. 단 AI 가 아직 아무것도
@@ -76,11 +88,16 @@ export function WikiFound({
         <span className="text-[12px] font-semibold text-muted-foreground">{candidates.length}건</span>
       </h2>
       <p className="mt-1 mb-3 text-[12.5px] leading-[1.6] text-muted-foreground">
-        저장한 자료에서 반복해 나타난 주제예요. 누르면 내 관심사로 추가돼요.
+        저장한 자료에서 AI가 찾은 주제예요. 누르면 내 관심사로 옮겨가요.
       </p>
       <div className="flex flex-wrap gap-2">
-        {candidates.map((tag) => (
-          <FoundChip key={tag.tagId} tag={tag} onAdded={onAdded} />
+        {candidates.map((candidate) => (
+          <FoundChip
+            key={candidate.key}
+            name={candidate.name}
+            reason={candidate.reason}
+            onAdded={onAdded}
+          />
         ))}
       </div>
     </section>
@@ -95,7 +112,15 @@ function normalizeName(name: string): string {
  * 후보 칩 — 칩 자체가 "＋ 추가" 버튼이다(온디맨드 패널 관심사 칩과 같은 형태).
  * 실패는 칩 옆이 아니라 칩 문구로 알린다 — 칩 사이에 빨간 줄이 끼면 배치가 무너진다.
  */
-function FoundChip({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
+function FoundChip({
+  name,
+  reason,
+  onAdded,
+}: {
+  name: string;
+  reason?: string;
+  onAdded: (name: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -103,12 +128,12 @@ function FoundChip({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
     if (busy) return;
     setBusy(true);
     setFailed(false);
-    createInterest(tag.tag.trim())
-      .then(() => onAdded())
+    createInterest(name.trim())
+      .then(() => onAdded(name))
       .catch((err) => {
         // 이미 등록돼 있으면 목표 상태 달성 — 성공과 동일하게 목록을 다시 읽어 정합시킨다.
         if (err instanceof ApiError && err.code === ERROR_CODES.DUPLICATE_RESOURCE) {
-          onAdded();
+          onAdded(name);
           return;
         }
         setFailed(true);
@@ -123,8 +148,8 @@ function FoundChip({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
       disabled={busy}
       aria-busy={busy}
       // 근거 문구는 칩에 다 못 쓰므로 title 로 남긴다(정보 유실 없음).
-      title={tag.reasonMessages[0] ?? undefined}
-      aria-label={`${tag.tag} 내 관심사로 추가`}
+      title={reason}
+      aria-label={`${name} 내 관심사로 추가`}
       // 칩은 카드 배경 위에 놓이므로 bg-background 로 한 톤 낮춰 경계를 만든다(온디맨드 칩과 동일).
       className={`focus-ring inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap disabled:opacity-50 ${
         failed
@@ -132,7 +157,7 @@ function FoundChip({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
           : "border-border bg-background text-foreground hover:border-primary hover:text-signal-ink"
       }`}
     >
-      <span className="min-w-0 truncate">{failed ? "추가 실패 — 다시" : tag.tag}</span>
+      <span className="min-w-0 truncate">{failed ? "추가 실패 — 다시" : name}</span>
       <span aria-hidden="true" className="shrink-0 text-muted-foreground">
         ＋
       </span>

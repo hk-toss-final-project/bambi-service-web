@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
 import { Orb } from "@/components/brand/orb";
@@ -61,9 +61,44 @@ function WikiView() {
   const my = useMyInterests();
   const recentSaves = useRecentSaves();
   const [amOpen, setAmOpen] = useState(false);
+  /**
+   * 이번 화면에서 방금 뺀 관심사 이름 (2026-08-11 우석 — "빼면 왼쪽으로 가야 한다").
+   *
+   * 관심사를 삭제하면 agent 컨텍스트가 재동기화되면서 **온보딩 선택에서 파생된 위키 태그도 함께
+   * 사라진다** → 발견 후보(위키 태그 − 내 관심사)에도 안 잡혀서 화면에서 완전히 증발했다.
+   * 되돌릴 방법이 "이름을 다시 타이핑"뿐이라 실수 한 번이 복구 불가였다.
+   * 그래서 뺀 이름을 이 화면이 기억해 왼쪽 목록에 남긴다 — 다시 누르면 그대로 복구된다.
+   * 저장하지 않는 세션 상태다(새로고침하면 사라진다). 서버가 태그를 계속 갖고 있는 관심사는
+   * 어차피 후보로 다시 올라오므로 중복은 이름 기준으로 합친다.
+   */
+  const [removedNames, setRemovedNames] = useState<readonly string[]>([]);
 
   const wikiTags = interests.status === "success" ? interests.data : null;
   const myInterests = my.status === "success" ? my.data : null;
+
+  /** 뺀 관심사를 기억하고 목록을 다시 읽는다. */
+  const handleRemoved = useCallback(
+    (name: string) => {
+      setRemovedNames((current) =>
+        current.some((n) => n.trim().toLowerCase() === name.trim().toLowerCase())
+          ? current
+          : [...current, name],
+      );
+      my.refetch();
+    },
+    [my],
+  );
+
+  /** 되돌리기(재추가) 성공 — 기억에서 지우고 목록을 다시 읽는다. */
+  const handleAdded = useCallback(
+    (name: string) => {
+      setRemovedNames((current) =>
+        current.filter((n) => n.trim().toLowerCase() !== name.trim().toLowerCase()),
+      );
+      my.refetch();
+    },
+    [my],
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,8 +126,13 @@ function WikiView() {
               좁은 화면(<900px)에서는 한 열로 쌓아 각 목록이 뭉개지지 않게 한다.
             */}
             <div className="mb-8 grid grid-cols-1 items-start gap-3 min-[900px]:grid-cols-2">
-              <WikiFound tags={interests} myInterests={myInterests} onAdded={my.refetch} />
-              <WikiMyInterests state={my} wikiTags={wikiTags} onChanged={my.refetch} />
+              <WikiFound
+                tags={interests}
+                myInterests={myInterests}
+                removedNames={removedNames}
+                onAdded={handleAdded}
+              />
+              <WikiMyInterests state={my} wikiTags={wikiTags} onRemoved={handleRemoved} />
             </div>
             <LlmWikiEntry />
           </main>

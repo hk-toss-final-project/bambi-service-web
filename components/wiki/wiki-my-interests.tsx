@@ -26,11 +26,12 @@ import type { WikiTag } from "@/types/wiki";
 export function WikiMyInterests({
   state,
   wikiTags,
-  onChanged,
+  onRemoved,
 }: {
   state: MyInterestsState & { refetch: () => void };
   wikiTags: WikiTag[] | null;
-  onChanged: () => void;
+  /** 뺀 관심사 이름을 알린다 — 화면이 그 이름을 왼쪽 목록에 남겨 되돌릴 수 있게 한다. */
+  onRemoved: (name: string) => void;
 }) {
   return (
     // 발견 후보 패널과 짝을 이루는 박스(2026-08-11 우석 — 2열 배치). 같은 껍데기·같은 제목 크기라
@@ -83,7 +84,7 @@ export function WikiMyInterests({
               key={interest.id}
               interest={interest}
               matched={findMatchedTag(interest, wikiTags)}
-              onChanged={onChanged}
+              onRemoved={onRemoved}
             />
           ))}
         </div>
@@ -102,11 +103,11 @@ function findMatchedTag(interest: InterestDto, wikiTags: WikiTag[] | null): Wiki
 function InterestCard({
   interest,
   matched,
-  onChanged,
+  onRemoved,
 }: {
   interest: InterestDto;
   matched: WikiTag | null;
-  onChanged: () => void;
+  onRemoved: (name: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -116,11 +117,11 @@ function InterestCard({
     setBusy(true);
     setFailed(false);
     deleteInterest(interest.id)
-      .then(() => onChanged())
+      .then(() => onRemoved(interest.name))
       .catch((err) => {
         // 이미 삭제된 경우 목표 상태 달성 — 목록 재조회로 정합시킨다.
         if (err instanceof ApiError && err.code === ERROR_CODES.NOT_FOUND) {
-          onChanged();
+          onRemoved(interest.name);
           return;
         }
         setFailed(true);
