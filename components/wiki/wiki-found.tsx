@@ -23,7 +23,11 @@ const FOUND_LIMIT = 12;
  *   409(이미 등록)는 목표 상태 달성으로 간주해 성공 처리한다(온보딩 replace 규칙과 동일).
  * - 목업의 "무시" 버튼은 만들지 않는다 — 무시 상태를 저장할 백엔드가 없어 새로고침이면 되돌아오는
  *   가짜 동작이 된다(동작하지 않는 UI 금지). 후보가 0건이면 섹션 자체를 렌더하지 않는다.
- * - 설명 줄 = evidence 근거 문구(있을 때만). 없으면 사실 그대로의 고정 문구.
+ *
+ * <b>레이아웃 = 칩(2026-08-11 우석).</b> 후보 12건을 세로 카드로 세우니 화면을 통째로 먹고
+ * 스크롤이 길어졌다(실사용 확인). 온디맨드 패널의 관심사 칩과 같은 형태로 압축한다 —
+ * 칩 하나가 곧 "＋ 추가" 버튼이고, 카드마다 반복되던 동일 설명 문구는 섹션 안내 한 줄로 올린다.
+ * 근거 문구(evidence)는 title 로 남겨 마우스를 올리면 볼 수 있게 한다(정보 유실 없음).
  */
 export function WikiFound({
   tags,
@@ -42,13 +46,16 @@ export function WikiFound({
 
   return (
     <section aria-label="AI가 최근 발견한 관심사" className="mb-8">
-      <h2 className="mb-2.5 flex items-baseline gap-2 text-[17px] font-bold tracking-[-0.01em] text-foreground">
+      <h2 className="mb-1 flex items-baseline gap-2 text-[17px] font-bold tracking-[-0.01em] text-foreground">
         AI가 최근 발견한 관심사
         <span className="text-[12px] font-semibold text-muted-foreground">{candidates.length}건</span>
       </h2>
-      <div className="flex flex-col gap-2.5">
+      <p className="mb-2.5 text-[12.5px] leading-[1.6] text-muted-foreground">
+        저장한 자료에서 반복해 나타난 주제예요. 누르면 내 관심사로 추가돼요.
+      </p>
+      <div className="flex flex-wrap gap-2">
         {candidates.map((tag) => (
-          <FoundRow key={tag.tagId} tag={tag} onAdded={onAdded} />
+          <FoundChip key={tag.tagId} tag={tag} onAdded={onAdded} />
         ))}
       </div>
     </section>
@@ -59,7 +66,11 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function FoundRow({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
+/**
+ * 후보 칩 — 칩 자체가 "＋ 추가" 버튼이다(온디맨드 패널 관심사 칩과 같은 형태).
+ * 실패는 칩 옆이 아니라 칩 문구로 알린다 — 칩 사이에 빨간 줄이 끼면 배치가 무너진다.
+ */
+function FoundChip({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -81,27 +92,24 @@ function FoundRow({ tag, onAdded }: { tag: WikiTag; onAdded: () => void }) {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-[14px] border border-border bg-card px-[18px] py-3.5">
-      <div className="min-w-0 flex-1">
-        <div className="text-[13.5px] font-semibold text-foreground">{tag.tag}</div>
-        <div className="mt-0.5 truncate text-[12.5px] text-muted-foreground">
-          {tag.reasonMessages[0] ?? "최근 저장한 자료에서 반복해서 나타난 주제예요."}
-        </div>
-        {failed && (
-          <div role="alert" className="mt-1 text-[12px] text-signal-ink">
-            추가하지 못했어요. 다시 시도해 주세요.
-          </div>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={add}
-        disabled={busy}
-        aria-busy={busy}
-        className="focus-ring inline-flex shrink-0 items-center justify-center rounded-[10px] border border-primary bg-primary px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap text-primary-foreground hover:brightness-[.96] disabled:opacity-50"
-      >
-        ＋ 추가
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={add}
+      disabled={busy}
+      aria-busy={busy}
+      // 근거 문구는 칩에 다 못 쓰므로 title 로 남긴다(정보 유실 없음).
+      title={tag.reasonMessages[0] ?? undefined}
+      aria-label={`${tag.tag} 내 관심사로 추가`}
+      className={`focus-ring inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap disabled:opacity-50 ${
+        failed
+          ? "border-destructive text-destructive"
+          : "border-border bg-card text-foreground hover:border-primary hover:text-signal-ink"
+      }`}
+    >
+      <span className="min-w-0 truncate">{failed ? "추가 실패 — 다시" : tag.tag}</span>
+      <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+        ＋
+      </span>
+    </button>
   );
 }
