@@ -14,7 +14,7 @@
  * - 게스트 단건 상세는 liked=false(서버가 viewerId 없음 → false, null 아님).
  */
 
-import type { ReportType } from "@/types/report";
+import type { ReportCoverImage, ReportType } from "@/types/report";
 
 /**
  * 카드 출처 1건(API DTO) — title·url 이 각각 독립적으로 null 일 수 있고,
@@ -64,6 +64,8 @@ export type CardResponse = {
    * 리포트가 없는 카드(동기 즉시 카드 등)는 "본문 없음"이며, 그 외 의미를 추측하지 않는다.
    */
   reportId?: string | null;
+  /** 단건 상세에서 연결된 리포트의 대표 이미지. 목록·구버전 응답에서는 null 또는 누락이다. */
+  coverImage?: ReportCoverImage | null;
   title: string;
   summary: string;
   whyForYou: string;

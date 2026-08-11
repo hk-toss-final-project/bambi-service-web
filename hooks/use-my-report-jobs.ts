@@ -23,8 +23,9 @@ export type MyReportJobsState =
   | { status: "ready"; preparing: MyReport[]; failed: MyReport[]; refetch: () => Promise<void> };
 
 /**
- * 활성 Pending이 있을 때만 5초 polling한다. 성공 응답의 ID가 다음 성공 응답에서 사라지면
- * 종결된 것으로 보고 완료 피드를 한 번 갱신한다. 실패 응답은 빈 목록으로 취급하지 않는다.
+ * 활성 Pending이 있으면 5초, 없으면 30초 간격으로 polling한다. idle polling은 화면을 연 뒤
+ * 서버 스케줄러가 새로 만든 아침 리포트도 발견한다. 성공 응답의 ID가 다음 성공 응답에서
+ * 사라지면 종결된 것으로 보고 완료 피드를 한 번 갱신한다. 실패 응답은 빈 목록으로 취급하지 않는다.
  *
  * `/pending`은 종결 상태를 반환하지 않으므로 failed는 별도 종결 API가 연결될 때까지 빈 배열이다.
  */
@@ -116,7 +117,7 @@ export function useMyReportJobs(onPendingSettled?: () => void): MyReportJobsStat
         stopTimer();
         return;
       }
-      if (snapshot !== null && snapshot.size > 0) void runFetch(true);
+      void runFetch(true);
     }
 
     requestRef.current = () => runFetch(true);

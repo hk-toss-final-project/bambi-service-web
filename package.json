@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:report-pending": "node --test tests/report-pending.test.mjs",
+    "test:report-cover-image": "node --test tests/report-cover-image.test.mjs",
     "test:feed-mix": "node --test tests/feed-mix.test.mjs"
   },
   "dependencies": {

@@ -19,13 +19,10 @@ export type ReportStatus = "PREPARING" | "READY" | "ERROR";
 export type ReportType = "MORNING_BRIEFING" | "ON_DEMAND" | "ONBOARDING";
 
 /**
- * 생성 **진행 상태를 추적할 수 있는** 종류만 — PREPARING·ERROR 슬롯이 다룰 수 있는 집합이다.
- *
- * `ONBOARDING` 이 빠진 이유: 완성된 보고서의 `reportType` 값으로는 존재하지만, Service 트리거와
- * Pending 행이 없는 **agent 자동 생성 경로**라 처리중·실패 상태 자체가 계약에 없다. 있지도 않은
- * 상태의 안내 문구를 만들지 않기 위해 타입 수준에서 막는다(완성 후 배지 표시는 ReportType 그대로).
+ * Service Pending으로 생성 진행 상태를 추적할 수 있는 종류. 온보딩 생성 소유권이 Service로
+ * 이동하면서 세 종류 모두 PREPARING 슬롯에서 동일하게 추적한다.
  */
-export type TrackableReportType = Exclude<ReportType, "ONBOARDING">;
+export type TrackableReportType = ReportType;
 
 /** GET /api/reports/pending이 반환하는 활성 생성 상태. 종결 상태는 이 API에 포함되지 않는다. */
 export type GenerationPendingStatus = "PENDING" | "RUNNING" | "PUBLISHING";
@@ -76,6 +73,14 @@ export type ReportCitation = {
   url: string | null;
 };
 
+/** Agent가 실제 인용 출처에서 고른 리포트 상단 대표 이미지 계약. */
+export type ReportCoverImage = {
+  url: string | null;
+  sourceUrl: string | null;
+  sourceTitle: string | null;
+  reference: string | null;
+};
+
 /**
  * GET /api/reports/{publicId} 성공 data — 서버 ReportResponse 와 1:1.
  * citations 는 서버 계약상 배열이지만 배열 아님/항목 null 까지 adapter 가 방어한다
@@ -86,6 +91,8 @@ export type ReportResponse = {
   title: string;
   summary: string | null;
   body: string | null;
+  /** 적합한 출처 이미지가 없거나 구버전 응답이면 null 또는 필드 누락이다. */
+  coverImage?: ReportCoverImage | null;
   citations: ReportCitation[];
   createdAt: string; // ISO-8601 (서버 OffsetDateTime)
   /**

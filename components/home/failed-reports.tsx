@@ -34,6 +34,10 @@ const ERROR_COPY: Record<TrackableReportType, { heading: string; subtext: string
     heading: "오늘의 아침 브리핑을 만들지 못했어요",
     subtext: "다음 브리핑에서 다시 준비할게요.",
   },
+  ONBOARDING: {
+    heading: "첫 리포트를 만들지 못했어요",
+    subtext: "잠시 후 다시 확인해 주세요.",
+  },
 };
 
 /**

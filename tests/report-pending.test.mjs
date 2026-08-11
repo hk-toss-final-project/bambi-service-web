@@ -19,18 +19,20 @@ vm.runInNewContext(
 
 const {
   ACTIVE_PENDING_POLL_MS,
+  IDLE_PENDING_POLL_MS,
+  getPreparingReportTitle,
   isGenerationPendingDto,
   observePendingFailure,
   observePendingSuccess,
   REPORT_PENDING_PATH,
 } = commonJsModule.exports;
 
-function pending(id, status = "PENDING") {
+function pending(id, status = "PENDING", reportType = "ON_DEMAND") {
   return {
     id,
     topic: "AI",
     contentType: "briefing",
-    reportType: "ON_DEMAND",
+    reportType,
     status,
     createdAt: "2026-08-10T09:00:00+09:00",
     updatedAt: "2026-08-10T09:00:00+09:00",
@@ -44,6 +46,7 @@ test("실제 pending 경로와 DTO의 활성 상태만 허용한다", () => {
     assert.equal(isGenerationPendingDto(pending("job-a", status)), true);
   }
   assert.equal(isGenerationPendingDto({ ...pending("job-a"), contentType: null }), true);
+  assert.equal(isGenerationPendingDto(pending("job-onboarding", "PENDING", "ONBOARDING")), true);
   assert.equal(isGenerationPendingDto(pending("job-a", "COMPLETED")), false);
   assert.equal(isGenerationPendingDto(pending("job-a", "READY")), false);
   const missingUpdatedAt = { ...pending("job-a") };
@@ -51,9 +54,21 @@ test("실제 pending 경로와 DTO의 활성 상태만 허용한다", () => {
   assert.equal(isGenerationPendingDto(missingUpdatedAt), false);
 });
 
-test("활성 pending이 있을 때만 5초 polling한다", () => {
+test("처리중 UI는 아침·온보딩·온디맨드 유형별 문구를 사용한다", () => {
+  assert.equal(
+    getPreparingReportTitle("서버 placeholder", "MORNING_BRIEFING"),
+    "오늘의 아침 브리핑을 생성하고 있어요",
+  );
+  assert.equal(
+    getPreparingReportTitle("AI", "ONBOARDING"),
+    "첫 리포트를 생성하고 있어요",
+  );
+  assert.equal(getPreparingReportTitle("AI", "ON_DEMAND"), "AI 보고서");
+});
+
+test("활성 pending은 5초, 빈 목록은 30초 polling한다", () => {
   assert.equal(observePendingSuccess(null, [pending("job-a")]).nextIntervalMs, ACTIVE_PENDING_POLL_MS);
-  assert.equal(observePendingSuccess(null, []).nextIntervalMs, null);
+  assert.equal(observePendingSuccess(null, []).nextIntervalMs, IDLE_PENDING_POLL_MS);
 });
 
 test("최초 빈 목록은 피드 갱신으로 오인하지 않는다", () => {
@@ -83,4 +98,11 @@ test("API 실패는 작업 완료가 아니며 이전 활성 스냅샷을 유지
   assert.equal(failed.shouldRefreshFeed, false);
   assert.equal(failed.snapshot, first.snapshot);
   assert.equal(failed.nextIntervalMs, ACTIVE_PENDING_POLL_MS);
+});
+
+test("활성 작업을 아직 발견하지 못한 API 실패도 30초 뒤 재시도한다", () => {
+  const failed = observePendingFailure(null);
+  assert.equal(failed.shouldRefreshFeed, false);
+  assert.equal(failed.snapshot, null);
+  assert.equal(failed.nextIntervalMs, IDLE_PENDING_POLL_MS);
 });

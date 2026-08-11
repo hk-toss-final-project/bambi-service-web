@@ -27,7 +27,11 @@ import {
   toFeedCardVM,
   toScrapped,
 } from "@/lib/adapters/card";
-import { toReportRailVM } from "@/lib/adapters/report";
+import {
+  toReportCoverImage,
+  toReportRailVM,
+  type ReportCoverImageVM,
+} from "@/lib/adapters/report";
 import { ReportMarkdown } from "@/components/report/report-markdown";
 import type { CardResponse, CardVisibility } from "@/types/feed";
 
@@ -127,6 +131,10 @@ function CardDetailView({
   const scrapped = toScrapped(shown.scrapped);
   // 본문(리포트) — 카드 ready 후에만 이 컴포넌트가 mount 되므로 여기서 2단계 요청을 시작한다.
   const body = useReportBody(card.reportId);
+  // 카드 상세 계약을 우선하고, 단계적 배포 중 필드가 없으면 리포트 상세 계약으로 폴백한다.
+  const rawCoverImage =
+    shown.coverImage ?? (body.status === "ready" ? body.report.coverImage : null);
+  const coverImage = toReportCoverImage(rawCoverImage);
   // 공개 범위 변경은 **카드 소유자에게만** 노출한다(비소유자·게스트는 링크 복사만).
   const owner = isCardOwner(shown, viewerPublicId);
   const isPublic = isPublicCard(shown);
@@ -200,6 +208,7 @@ function CardDetailView({
 
             {/* .dcard */}
             <article className="mb-4 rounded-2xl border border-border bg-card px-[30px] py-[26px]">
+              <ReportCoverHero coverImage={coverImage} />
               {/*
                 생성 종류 + 작성 시각 한 줄. 종류 배지는 **내 보고서에만** 의미가 있으므로
                 소유자에게만 렌더한다 — 이 화면은 소유자와 공개 카드 열람자(타인·게스트)가 같은
@@ -314,6 +323,49 @@ function CardDetailView({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * 리포트 상단 대표 이미지. 외부 도메인은 응답마다 달라 Next Image allowlist로 안전하게
+ * 열거할 수 없으므로 검증된 원본 URL을 직접 사용한다. 로드 실패 시 빈 프레임도 남기지 않는다.
+ */
+function ReportCoverHero({ coverImage }: { coverImage: ReportCoverImageVM | null }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  if (coverImage === null || failedUrl === coverImage.url) return null;
+
+  return (
+    <figure className="mb-6 overflow-hidden rounded-xl border border-border bg-background">
+      <a
+        href={coverImage.sourceUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${coverImage.sourceLabel} 원문 열기`}
+        className="focus-ring block"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- 출처별 동적 도메인은 Next Image allowlist로 열지 않는다. */}
+        <img
+          src={coverImage.url}
+          alt=""
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedUrl(coverImage.url)}
+          className="aspect-video w-full bg-[var(--skel1)] object-cover"
+        />
+      </a>
+      <figcaption className="border-t border-border px-3 py-2 text-[11.5px] text-muted-foreground">
+        <a
+          href={coverImage.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="focus-ring rounded-sm hover:text-signal-ink hover:underline"
+        >
+          이미지 출처 · {coverImage.sourceLabel} ↗
+        </a>
+      </figcaption>
+    </figure>
   );
 }
 

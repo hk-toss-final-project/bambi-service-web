@@ -14,6 +14,7 @@ import { ERROR_CODES } from "@/constants/errors";
 import { useOnboardingInterests } from "@/hooks/use-onboarding-interests";
 import { ApiError } from "@/lib/api-client";
 import { replaceUserInterests } from "@/lib/repositories/interests";
+import { completeOnboarding } from "@/lib/repositories/onboarding";
 import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
 
 /**
@@ -24,8 +25,8 @@ import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
  * - 관심사 **최소 1개 필수** — 건너뛰기 없음. 0개면 제출 CTA 비활성.
  * - 여기서 고른 관심사는 사용자가 직접 설정한 값(source=USER, 서버가 강제).
  *   agent 자동 추론 태그(INFERRED · /api/wiki/tags)는 조회·저장 어느 쪽에도 섞지 않는다.
- * - 저장이 Agent Context에 반영되면 첫 Topic 리포트가 비동기 등록되며 완료 알림은 홈 Inbox로 온다.
- * - 실제 저장(replaceUserInterests) 성공 후에만 완료 화면으로 넘어간다.
+ * - 저장한 관심사의 선택 순서를 Service에 확정하면 최대 3개의 첫 리포트가 비동기 등록된다.
+ * - 관심사 저장과 온보딩 완료 처리까지 성공한 뒤에만 완료 화면으로 넘어간다.
  *
  * 인증 상태 4분기(설정·홈과 동일 패턴): loading→스켈레톤 / error→복원오류 / guest→접근제한 / authenticated→본문.
  * guest 직접 진입 시 관심사 API 는 호출하지 않는다(훅이 authenticated 에서만 요청).
@@ -122,8 +123,19 @@ function OnboardingFlow({
           ? { name, taxonomyVersion: taxonomy.version, topicId: topic.id }
           : { name };
       });
-      // 선택 결과를 서버로 동기화하면 Agent가 첫 Topic 리포트를 비동기로 등록한다.
+      // 먼저 관심사 CRUD를 목표 상태로 수렴시키고 서버의 canonical ID를 다시 읽는다.
       const canonical = await replaceUserInterests(selections, current);
+      const canonicalByName = new Map(canonical.map((interest) => [interest.name, interest]));
+      const orderedInterestIds = selected.map((name) => canonicalByName.get(name)?.id);
+      if (orderedInterestIds.some((id) => id === undefined)) {
+        throw new ApiError(
+          ERROR_CODES.INTERNAL_ERROR,
+          "saved interests do not match onboarding selection",
+          200,
+        );
+      }
+      // Service가 이 순서로 Agent Context를 확정하고 선정 규칙에 따라 최대 3개를 생성한다.
+      await completeOnboarding(orderedInterestIds as number[]);
       const canonicalNames = canonical.map((i) => i.name);
       setCurrent(canonical);
       setSaved(canonical);

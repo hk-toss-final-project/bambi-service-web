@@ -1,6 +1,7 @@
 "use client";
 
 import { Orb } from "@/components/brand/orb";
+import { getPreparingReportTitle } from "@/lib/report-pending";
 import type { MyReport, TrackableReportType } from "@/types/report";
 
 /**
@@ -22,17 +23,6 @@ export function PreparingReports({ reports }: { reports: MyReport[] }) {
       ))}
     </section>
   );
-}
-
-/**
- * 카드 본문 제목 — 무엇을 생성하고 있는지 유형별로 다르게 알린다.
- * 온디맨드는 사용자가 고른 관심사명(title)을 그대로 문장에 넣어 "무엇을" 만드는지 드러내고,
- * 아침 브리핑은 사용자가 고른 값이 없으므로(LLM Wiki 가 상위 관심사로 자동 생성) 관심사명 대신
- * 고정 문구를 쓴다 — title 을 그대로 노출하면 서버가 채운 placeholder 가 새 나갈 수 있다.
- */
-function preparingBodyTitle(title: string, reportType: TrackableReportType): string {
-  if (reportType === "MORNING_BRIEFING") return "오늘의 아침 브리핑을 생성하고 있어요";
-  return `${title} 보고서`;
 }
 
 /**
@@ -62,7 +52,7 @@ function PreparingSlot({ title, reportType }: { title: string; reportType: Track
               생성 중
             </span>
             <p className="truncate text-[14px] font-bold tracking-[-0.01em] text-foreground">
-              {preparingBodyTitle(title, reportType)}
+              {getPreparingReportTitle(title, reportType)}
             </p>
           </div>
           <p className="mt-1.5 text-[12px] text-muted-foreground">{PREPARING_DESCRIPTION}</p>

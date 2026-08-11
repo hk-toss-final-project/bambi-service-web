@@ -17,6 +17,70 @@ export type ReportCitationVM = {
   url: string | null;
 };
 
+/** 화면이 안전하게 렌더할 수 있는 대표 이미지와 출처. */
+export type ReportCoverImageVM = {
+  url: string;
+  sourceUrl: string;
+  sourceLabel: string;
+};
+
+/** 자동 요청되는 이미지 URL은 로컬·사설 네트워크 대상을 허용하지 않는다. */
+function normalizeRemoteImageUrl(value: unknown): string | null {
+  const url = normalizeHttpUrl(value);
+  if (url === null) return null;
+  const parsed = new URL(url);
+  if (parsed.username !== "" || parsed.password !== "") return null;
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host.includes(":") ||
+    !host.includes(".")
+  ) {
+    return null;
+  }
+  const octets = host.split(".").map(Number);
+  if (octets.length === 4 && octets.every((octet) => Number.isInteger(octet))) {
+    const [a, b] = octets;
+    if (
+      octets.some((octet) => octet < 0 || octet > 255) ||
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      a >= 224 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    ) {
+      return null;
+    }
+  }
+  return url;
+}
+
+/**
+ * 대표 이미지 계약을 런타임에서 검증한다. 이미지와 원문 URL이 모두 HTTP(S)일 때만
+ * 렌더하고, 출처 제목이 없으면 검증된 원문 URL의 host를 표시한다.
+ */
+export function toReportCoverImage(value: unknown): ReportCoverImageVM | null {
+  if (value === null || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const url = normalizeRemoteImageUrl(raw.url);
+  const sourceUrl = normalizeHttpUrl(raw.sourceUrl);
+  if (url === null || sourceUrl === null) return null;
+  const parsedSource = new URL(sourceUrl);
+  if (parsedSource.username !== "" || parsedSource.password !== "") return null;
+  const sourceTitle = normalizeText(raw.sourceTitle);
+  return {
+    url,
+    sourceUrl,
+    sourceLabel: sourceTitle ?? parsedSource.hostname,
+  };
+}
+
 /**
  * citations 정규화 — 제목·URL 이 모두 없는 citation 은 제거한다(빈 껍데기 출처 금지).
  * 제목만 있는 citation 은 링크 없는 텍스트 출처로 남고, URL 만 있는 citation 은 URL 을 제목 자리에

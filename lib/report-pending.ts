@@ -6,6 +6,7 @@ import type {
 
 export const REPORT_PENDING_PATH = "/api/reports/pending";
 export const ACTIVE_PENDING_POLL_MS = 5_000;
+export const IDLE_PENDING_POLL_MS = 30_000;
 
 export type PendingIdSnapshot = ReadonlySet<string> | null;
 
@@ -20,6 +21,13 @@ export type PendingFailureObservation = {
   shouldRefreshFeed: false;
   nextIntervalMs: number | null;
 };
+
+/** 홈 처리중 슬롯에 노출할 유형별 제목. API 식별값이나 서버 placeholder는 노출하지 않는다. */
+export function getPreparingReportTitle(title: string, reportType: TrackableReportType): string {
+  if (reportType === "MORNING_BRIEFING") return "오늘의 아침 브리핑을 생성하고 있어요";
+  if (reportType === "ONBOARDING") return "첫 리포트를 생성하고 있어요";
+  return `${title} 보고서`;
+}
 
 /** 실제 Pending DTO의 필수 필드와 활성 상태 enum을 런타임에서 검증한다. */
 export function isGenerationPendingDto(value: unknown): value is GenerationPendingDto {
@@ -51,17 +59,17 @@ export function observePendingSuccess(
   return {
     snapshot,
     shouldRefreshFeed,
-    nextIntervalMs: reports.length > 0 ? ACTIVE_PENDING_POLL_MS : null,
+    nextIntervalMs: reports.length > 0 ? ACTIVE_PENDING_POLL_MS : IDLE_PENDING_POLL_MS,
   };
 }
 
-/** 일시 오류는 빈 성공 응답이 아니다. 이전 스냅샷을 보존하고 활성 작업이 있었다면 5초 후 재시도한다. */
+/** 일시 오류는 빈 성공 응답이 아니다. 이전 스냅샷을 보존하고 활성 여부에 맞춰 재시도한다. */
 export function observePendingFailure(previous: PendingIdSnapshot): PendingFailureObservation {
   return {
     snapshot: previous,
     shouldRefreshFeed: false,
     nextIntervalMs:
-      previous !== null && previous.size > 0 ? ACTIVE_PENDING_POLL_MS : null,
+      previous !== null && previous.size > 0 ? ACTIVE_PENDING_POLL_MS : IDLE_PENDING_POLL_MS,
   };
 }
 
@@ -70,7 +78,7 @@ function isNullableString(value: unknown): value is string | null {
 }
 
 function isTrackableReportType(value: unknown): value is TrackableReportType {
-  return value === "MORNING_BRIEFING" || value === "ON_DEMAND";
+  return value === "MORNING_BRIEFING" || value === "ON_DEMAND" || value === "ONBOARDING";
 }
 
 function isGenerationPendingStatus(value: unknown): value is GenerationPendingStatus {
