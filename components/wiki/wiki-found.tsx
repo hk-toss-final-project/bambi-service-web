@@ -42,7 +42,26 @@ export function WikiFound({
 
   const owned = new Set(myInterests.map((interest) => normalizeName(interest.name)));
   const candidates = tags.data.filter((tag) => !owned.has(normalizeName(tag.tag))).slice(0, FOUND_LIMIT);
-  if (candidates.length === 0) return null;
+
+  // 후보 0건이어도 섹션을 통째로 지우지 않는다(2026-08-11 우석 — "발견 섹션이 어디 갔냐").
+  // 전부 추가해서 비었을 뿐인데 흔적 없이 사라지면 고장으로 읽힌다. 단 AI 가 아직 아무것도
+  // 못 찾은 상태(tags 0건)에서는 빈 안내조차 의미가 없으므로 그때만 렌더하지 않는다.
+  if (candidates.length === 0) {
+    if (tags.data.length === 0) return null;
+    return (
+      <section
+        aria-label="AI가 최근 발견한 관심사"
+        className="mb-8 rounded-[14px] border border-border bg-card px-[18px] py-4"
+      >
+        <h2 className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
+          AI가 최근 발견한 관심사
+        </h2>
+        <p className="mt-1 text-[12.5px] leading-[1.6] text-muted-foreground">
+          AI가 찾은 주제를 모두 내 관심사에 추가했어요. 자료를 더 저장하면 새 주제를 찾아 여기에 보여드릴게요.
+        </p>
+      </section>
+    );
+  }
 
   return (
     // 카드 박스로 묶는다(2026-08-11 우석) — 온디맨드 패널(.on-demand-panel)과 같은

@@ -136,24 +136,18 @@ function InterestCard({
   return (
     // 한 줄 행 — 목록이 촘촘하게 읽히도록 카드 높이를 최소화한다.
     <article className="rounded-[12px] border border-border bg-card px-[14px] py-2.5" title={reasonTitle}>
+      {/*
+        배지·신뢰도 퍼센트는 노출하지 않는다 (2026-08-11 우석).
+        confidence 는 agent 산식이 `0.4 + 출처수*0.12 + min(연결,10)*0.03` 이라 바닥이 0.4 로
+        고정이고, 온보딩으로 들어온 관심사는 전부 출처 1·연결 0 이라 **모두 52% 로 같게 나왔다**
+        — 정밀해 보이지만 변별이 0 인 수치라 「근거 없는 수치 노출 금지」 규칙에 걸린다.
+        "AI 일치" 라벨도 실제 의미는 "일치도"가 아니라 agent 의 태그 확신도라 오해를 만들었다.
+        값이 실제로 갈리기 시작하면 그때 근거와 함께 되살린다.
+      */}
       <div className="flex items-center gap-2">
         <span className="min-w-0 truncate text-[13.5px] font-bold text-foreground">
           {interest.name}
         </span>
-        {matched ? (
-          <>
-            <span className="shrink-0 rounded-full border border-border bg-background px-1.5 py-px text-[11px] font-semibold text-signal-ink">
-              ◈ AI 일치
-            </span>
-            <span className="shrink-0 text-[11px] text-muted-foreground">
-              {Math.round(matched.confidence * 100)}%
-            </span>
-          </>
-        ) : (
-          <span className="shrink-0 rounded-full border border-border bg-background px-1.5 py-px text-[11px] font-semibold text-ink-mid">
-            직접 설정
-          </span>
-        )}
         <span className="flex-1" />
         {failed && (
           <span role="alert" className="shrink-0 text-[11.5px] text-signal-ink">
