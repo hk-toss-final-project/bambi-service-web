@@ -107,8 +107,8 @@ export function toAuthorCards(
  * 화면에 밝힌다. 개수(count)는 정렬에만 쓰고 화면에 숫자로 내보내지 않는다: 전체 통계가 아닌 값을
  * 통계처럼 보이게 만들지 않는다.
  *
- * 비교 기준은 공개 피드 태그 비교와 같은 trim + 소문자이고(lib/feed-mix.ts 의 toTagKey 규약),
- * **표기는 처음 나온 원문 그대로** 남긴다(대소문자를 임의로 바꾸지 않는다).
+ * 비교 기준은 trim + 소문자이고, **표기는 처음 나온 원문 그대로** 남긴다(대소문자를 임의로
+ * 바꾸지 않는다).
  * 동점이면 먼저 나온(= 더 최근 카드의) 태그가 앞선다 — 정렬 결과가 매번 흔들리지 않게 한다.
  */
 export function toProfileTopics(cards: readonly AuthorCardVM[], limit: number): string[] {

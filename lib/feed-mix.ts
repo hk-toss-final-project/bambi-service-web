@@ -31,11 +31,24 @@ export function isRecommendedCandidate(card: PublicFeedCardVM): boolean {
   return card.matchedCategories.length > 0;
 }
 
+/** 1순위 후보 — matchedTopics 매칭이 있는 카드. 추천 슬롯을 채울 때 이 풀을 먼저 쓴다. */
+function isPrimaryCandidate(card: PublicFeedCardVM): boolean {
+  return card.matchedTopics.length > 0;
+}
+
+/** 2순위 후보 — matchedTopics 는 없고 matchedCategories(넓은 매칭)만 있는 카드. 1순위 풀이 부족할 때만 보강한다. */
+function isSecondaryCandidate(card: PublicFeedCardVM): boolean {
+  return card.matchedTopics.length === 0 && card.matchedCategories.length > 0;
+}
+
 /**
- * 추천 후보 선별 — "서버가 매칭했다고 표시한, 내가 팔로우하지 않은 남의 공개 카드".
+ * 추천 후보 선별 — "서버가 매칭했다고 표시한, 내가 팔로우하지 않은 남의 공개 카드"를
+ * **1순위(topic 매칭)**와 **2순위(topic 매칭 없이 category 매칭만)** 풀로 나눠 돌려준다.
+ * `interleaveFeed` 가 `recommendedCards` 를 앞에서부터 순서대로 소비하므로, 호출부가 1순위 뒤에
+ * 2순위를 이어붙이기만 하면 "1순위를 먼저 채우고 부족할 때만 2순위로 보강"이 자연히 성립한다.
  *
- * 제외 기준:
- * - `isRecommendedCandidate` 가 false 인 카드(매칭 topic·category 모두 없음)
+ * 두 풀 공통 제외 기준:
+ * - 매칭 topic·category 모두 없는 카드(`isPrimaryCandidate`·`isSecondaryCandidate` 모두 false)
  * - 이미 팔로우한 작성자의 카드 (그건 팔로잉 몫이다)
  * - 로그인한 본인이 쓴 카드
  * - 이미 팔로잉 목록에 있는 카드(publicId 중복) → 팔로잉 우선 분류
@@ -55,18 +68,19 @@ export function pickRecommendedCandidates({
   followedAuthorIds: ReadonlySet<string>;
   /** 로그인한 본인 publicId. 알 수 없으면 null(본인 카드 제외를 건너뛴다). */
   viewerPublicId: string | null;
-}): PublicFeedCardVM[] {
+}): { primary: PublicFeedCardVM[]; secondary: PublicFeedCardVM[] } {
   const followingIds = new Set(followingCards.map((card) => card.publicId));
-  const result: PublicFeedCardVM[] = [];
+  const primary: PublicFeedCardVM[] = [];
+  const secondary: PublicFeedCardVM[] = [];
   for (const card of allPublic) {
     if (followingIds.has(card.publicId)) continue; // 같은 카드는 팔로잉으로 분류
     const authorId = card.author.publicId;
     if (authorId !== null && followedAuthorIds.has(authorId)) continue; // 팔로우한 작성자
     if (authorId !== null && viewerPublicId !== null && authorId === viewerPublicId) continue; // 본인 카드
-    if (!isRecommendedCandidate(card)) continue;
-    result.push(card);
+    if (isPrimaryCandidate(card)) primary.push(card);
+    else if (isSecondaryCandidate(card)) secondary.push(card);
   }
-  return result;
+  return { primary, secondary };
 }
 
 /** 팔로잉 카드에서 팔로우 중인 작성자 publicId 집합을 만든다(팔로잉 목록 = 팔로우한 작성자의 카드). */
