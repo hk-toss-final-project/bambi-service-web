@@ -52,23 +52,23 @@ function render(markdown, delta) {
 
 /* ── 단일 주제 / 다주제 실제 본문 형태 ─────────────────────────────── */
 
-const SINGLE_TOPIC = `## 이번에 달라진 점
-### 달라진 사실
+const SINGLE_TOPIC = `## 변경사항
+### 변경된 사실
 - 목표 시점이 ~~2026-2Q~~ 에서 \`2026-4Q\` 로 밀렸다
-### 새로 확인된 사실
+### 새롭게 확인된 사실
 - 신규 파트너 \`3곳\` 이 확정됐다
-## 보고서 내용
+## 내용
 - 일반 항목 \`값\` 하나
-## 주목할 점
+## 시사점
 - 눈여겨볼 것`;
 
 const MULTI_TOPIC = `## 반도체
-### 이번에 달라진 점
-#### 달라진 사실
+### 변경사항
+#### 변경된 사실
 - 단가가 ~~1,200원~~ 에서 \`1,450원\` 으로 올랐다
-#### 새로 확인된 사실
+#### 새롭게 확인된 사실
 - 신규 라인 \`2개\` 착공
-### 보고서 내용
+### 내용
 - 본문 항목`;
 
 /* ── 1. 렌더링 분기 ─────────────────────────────────────────────── */
@@ -116,24 +116,24 @@ test("delta=true 면 md-delta 스코프가 붙는다", () => {
 
 test("단일 주제: h2 → h3 depth 를 보존한다", () => {
   const html = render(SINGLE_TOPIC, true);
-  assert.match(html, /<h2[^>]*>이번에 달라진 점<\/h2>/);
-  assert.match(html, /<h3[^>]*>달라진 사실<\/h3>/);
-  assert.match(html, /<h3[^>]*>새로 확인된 사실<\/h3>/);
+  assert.match(html, /<h2[^>]*>변경사항<\/h2>/);
+  assert.match(html, /<h3[^>]*>변경된 사실<\/h3>/);
+  assert.match(html, /<h3[^>]*>새롭게 확인된 사실<\/h3>/);
 });
 
 test("다주제: h2 → h3 → h4 depth 를 보존한다", () => {
   const html = render(MULTI_TOPIC, true);
   assert.match(html, /<h2[^>]*>반도체<\/h2>/);
-  assert.match(html, /<h3[^>]*>이번에 달라진 점<\/h3>/);
-  assert.match(html, /<h4[^>]*>달라진 사실<\/h4>/);
-  assert.match(html, /<h4[^>]*>새로 확인된 사실<\/h4>/);
+  assert.match(html, /<h3[^>]*>변경사항<\/h3>/);
+  assert.match(html, /<h4[^>]*>변경된 사실<\/h4>/);
+  assert.match(html, /<h4[^>]*>새롭게 확인된 사실<\/h4>/);
 });
 
 test("다주제의 섹션 헤더와 최심 소제목이 같은 태그로 평탄화되지 않는다", () => {
   const html = render(MULTI_TOPIC, true);
   // 섹션은 h3, 소제목은 h4 — 둘 다 h3 로 접히던 기존 동작이 재현되면 실패한다.
-  assert.equal(/<h3[^>]*>달라진 사실<\/h3>/.test(html), false);
-  assert.equal(/<h4[^>]*>이번에 달라진 점<\/h4>/.test(html), false);
+  assert.equal(/<h3[^>]*>변경된 사실<\/h3>/.test(html), false);
+  assert.equal(/<h4[^>]*>변경사항<\/h4>/.test(html), false);
 });
 
 test("#####·###### 도 h5·h6 까지 보존하고 그 이하는 h6 으로 고정한다", () => {
@@ -144,38 +144,38 @@ test("#####·###### 도 h5·h6 까지 보존하고 그 이하는 h6 으로 고�
 
 /* ── 3. 배지 판정 (구조 먼저 → 정확 일치) ───────────────────────── */
 
-test("단일 주제: 최심 소제목 '달라진 사실' → changed, '새로 확인된 사실' → fresh", () => {
+test("단일 주제: 최심 소제목 '변경된 사실' → changed, '새롭게 확인된 사실' → fresh", () => {
   const html = render(SINGLE_TOPIC, true);
-  assert.match(html, /<h3 class="md-delta-changed">달라진 사실<\/h3>/);
-  assert.match(html, /<h3 class="md-delta-fresh">새로 확인된 사실<\/h3>/);
+  assert.match(html, /<h3 class="md-delta-changed">변경된 사실<\/h3>/);
+  assert.match(html, /<h3 class="md-delta-fresh">새롭게 확인된 사실<\/h3>/);
 });
 
 test("다주제: 최심 소제목에서도 동일하게 changed·fresh 판정", () => {
   const html = render(MULTI_TOPIC, true);
-  assert.match(html, /<h4 class="md-delta-changed">달라진 사실<\/h4>/);
-  assert.match(html, /<h4 class="md-delta-fresh">새로 확인된 사실<\/h4>/);
+  assert.match(html, /<h4 class="md-delta-changed">변경된 사실<\/h4>/);
+  assert.match(html, /<h4 class="md-delta-fresh">새롭게 확인된 사실<\/h4>/);
 });
 
-test("'이번에 달라진 점' 은 섹션 헤더일 뿐 changed 배지를 받지 않는다", () => {
+test("'변경사항' 은 섹션 헤더일 뿐 changed 배지를 받지 않는다", () => {
   const single = render(SINGLE_TOPIC, true);
-  assert.match(single, /<h2 class="md-delta-section">이번에 달라진 점<\/h2>/);
-  assert.equal(/class="md-delta-changed">이번에 달라진 점/.test(single), false);
+  assert.match(single, /<h2 class="md-delta-section">변경사항<\/h2>/);
+  assert.equal(/class="md-delta-changed">변경사항/.test(single), false);
 
   const multi = render(MULTI_TOPIC, true);
-  assert.match(multi, /<h3 class="md-delta-section">이번에 달라진 점<\/h3>/);
-  assert.equal(/class="md-delta-changed">이번에 달라진 점/.test(multi), false);
+  assert.match(multi, /<h3 class="md-delta-section">변경사항<\/h3>/);
+  assert.equal(/class="md-delta-changed">변경사항/.test(multi), false);
 });
 
-test("'보고서 내용'·'주목할 점' 은 fresh 배지를 받지 않는다(else 기본값 없음)", () => {
+test("'내용'·'시사점' 은 fresh 배지를 받지 않는다(else 기본값 없음)", () => {
   const html = render(SINGLE_TOPIC, true);
-  assert.equal(/class="md-delta-fresh">보고서 내용/.test(html), false);
-  assert.equal(/class="md-delta-fresh">주목할 점/.test(html), false);
-  assert.equal(/class="md-delta-changed">보고서 내용/.test(html), false);
+  assert.equal(/class="md-delta-fresh">내용/.test(html), false);
+  assert.equal(/class="md-delta-fresh">시사점/.test(html), false);
+  assert.equal(/class="md-delta-changed">내용/.test(html), false);
 });
 
-test("부분 일치 제목('달라진 사실 안내')과 알 수 없는 제목은 배지가 없다", () => {
-  const html = render("## 이번에 달라진 점\n### 달라진 사실 안내\n### 기타 소식\n- x", true);
-  assert.match(html, /<h3>달라진 사실 안내<\/h3>/); // 클래스 없음
+test("부분 일치 제목('변경된 사실 안내')과 알 수 없는 제목은 배지가 없다", () => {
+  const html = render("## 변경사항\n### 변경된 사실 안내\n### 기타 소식\n- x", true);
+  assert.match(html, /<h3>변경된 사실 안내<\/h3>/); // 클래스 없음
   assert.match(html, /<h3>기타 소식<\/h3>/);
   assert.equal(html.includes("md-delta-changed"), false);
   assert.equal(html.includes("md-delta-fresh"), false);
@@ -197,7 +197,7 @@ test("delta 에서 ~~값~~ 은 <del> 로 렌더되고 화면에 ~~ 가 남지 �
 
 test("취소선이 링크·강조·백틱 등 기존 인라인 파싱을 깨지 않는다", () => {
   const html = render(
-    "## s\n### 달라진 사실\n- **굵게** ~~옛값~~ `새값` [링크](https://example.com) 끝",
+    "## s\n### 변경된 사실\n- **굵게** ~~옛값~~ `새값` [링크](https://example.com) 끝",
     true,
   );
   assert.match(html, /<b>굵게<\/b>/);
@@ -209,7 +209,7 @@ test("취소선이 링크·강조·백틱 등 기존 인라인 파싱을 깨지 
 /* ── 5. (기존)/(변경) 목록 결합 ─────────────────────────────────── */
 
 test("들여쓴 (변경) 줄이 직전 (기존) 목록 항목에 결합된다", () => {
-  const html = render("## s\n### 달라진 사실\n- (기존) 기존 내용\n  (변경) 변경된 내용", true);
+  const html = render("## s\n### 변경된 사실\n- (기존) 기존 내용\n  (변경) 변경된 내용", true);
   // 같은 비교 <li> 안에 두 줄이 있고, 기존/변경의 읽기 위계 클래스가 각각 붙어야 한다.
   assert.match(
     html,
@@ -226,7 +226,7 @@ test("결합은 delta 에서만 — 기존 렌더링에서는 지금처럼 별�
 
 test("일반 문단·다음 목록·하위 불릿을 잘못 삼키지 않는다", () => {
   const html = render(
-    "## s\n### 달라진 사실\n- 첫 항목\n  - 하위 불릿\n- 둘째 항목\n\n들여쓰지 않은 문단",
+    "## s\n### 변경된 사실\n- 첫 항목\n  - 하위 불릿\n- 둘째 항목\n\n들여쓰지 않은 문단",
     true,
   );
   assert.match(html, /<ul><li>하위 불릿<\/li><\/ul>/); // 하위 불릿은 그대로 중첩 목록
@@ -235,7 +235,7 @@ test("일반 문단·다음 목록·하위 불릿을 잘못 삼키지 않는다"
 });
 
 test("들여쓴 제목·표·인용은 연속 행으로 삼키지 않는다", () => {
-  const html = render("## s\n### 달라진 사실\n- 항목\n  ## 들여쓴 제목", true);
+  const html = render("## s\n### 변경된 사실\n- 항목\n  ## 들여쓴 제목", true);
   assert.equal(html.includes('<span class="md-cont">## 들여쓴 제목'), false);
 });
 
@@ -251,7 +251,7 @@ test("fresh 소제목 아래 백틱 값은 fresh 클래스를 받는다", () => 
   assert.match(html, /<code class="md-delta-value-fresh">3곳<\/code>/);
 });
 
-test("문맥 밖(보고서 내용 등) 백틱은 기존 스타일 그대로 클래스가 없다", () => {
+test("문맥 밖(내용 등) 백틱은 기존 스타일 그대로 클래스가 없다", () => {
   const html = render(SINGLE_TOPIC, true);
   assert.match(html, /<code>값<\/code>/);
 });
@@ -317,11 +317,11 @@ test("본문 HTML 태그는 실행되지 않고 문자 그대로 이스케이프
 });
 
 /* ── 8. 운영 실제 본문 형태 ──────────────────────────────────────────
-   위 1~7 의 픽스처는 계약 **문서 예시**(`### 달라진 사실`, `- (기존) …`)를 옮긴 것이라
+   위 1~7 의 픽스처는 계약 **문서 예시**(`### 변경된 사실`, `- (기존) …`)를 옮긴 것이라
    운영에서 실제로 오는 두 가지 차이를 잡지 못했다. 아래는 2026-08-11 운영
    (GET /api/reports/{publicId}, changeHistoryEnabled=true) 응답 body 를 그대로 옮긴 것이다.
 
-     1) 소제목에 건수가 붙는다      → `### 달라진 사실 (2건)`
+     1) 소제목에 건수가 붙는다      → `### 변경된 사실 (2건)`
      2) (기존)/(변경) 에 불릿이 없다 → `  (기존) …` / `  (변경) …` (2칸 들여쓰기만)
 
    근거: bambi-agent-api `agent/change_history/features/assembly.py`
@@ -329,9 +329,9 @@ test("본문 HTML 태그는 실행되지 않고 문자 그대로 이스케이프
    ────────────────────────────────────────────────────────────────── */
 
 /** 운영 리포트 ee9a22dc-… 의 body 발췌(변경 항목 2건 + 다음 섹션). */
-const PRODUCTION_DELTA = `## 이번에 달라진 점
+const PRODUCTION_DELTA = `## 변경사항
 
-### 달라진 사실 (2건)
+### 변경된 사실 (2건)
 
   (기존) ~~오는 18일부터 판매점에서 구매한 종이 로또복권을 등록하면 당첨금을 받을 수 있게 된다.~~
   (변경) \`로또 당첨금 자동 입금 시스템이 오는 18일부터 시행된다.\` [L1]
@@ -339,33 +339,33 @@ const PRODUCTION_DELTA = `## 이번에 달라진 점
   (기존) ~~모번 다이아와 가3 가5가 주요 당번으로 언급되었다.~~
   (변경) \`로또 제1237회에서 주요 당번으로 모번 다이아와 가3 가5가 언급되었다.\` [L3]
 
-## 보고서 내용
+## 내용
 
 로또 미수령 당첨금 자동 지급 시스템이 시행됩니다.`;
 
 /** 운영 리포트 ceaf0c23-… 의 body 발췌(최초 실행 안내 + 신규 팩트). */
-const PRODUCTION_FIRST_RUN = `## 이번에 달라진 점
+const PRODUCTION_FIRST_RUN = `## 변경사항
 
 이 주제의 최초 실행이라 비교 대상이 없습니다. 오늘 확인된 내용을 전부 정리했습니다.
 
-### 새로 확인된 사실 (4건)
+### 새롭게 확인된 사실 (4건)
 
 - 삼성전자가 '폴더블 헤리티지' 전시 공간을 상시 운영하기 시작했다. [G1]
 
 - 삼성전자의 목표 주가가 \`60만 원\` 에 도달할 것으로 예상된다. [L3]
 
-## 보고서 내용
+## 내용
 
 본문입니다.`;
 
-test("운영 형태: 건수가 붙은 소제목도 배지를 받는다 (`### 달라진 사실 (2건)`)", () => {
+test("운영 형태: 건수가 붙은 소제목도 배지를 받는다 (`### 변경된 사실 (2건)`)", () => {
   const html = render(PRODUCTION_DELTA, true);
-  assert.match(html, /<h3 class="md-delta-changed">달라진 사실 \(2건\)<\/h3>/);
+  assert.match(html, /<h3 class="md-delta-changed">변경된 사실 \(2건\)<\/h3>/);
 });
 
-test("운영 형태: 건수가 붙은 신규 소제목도 배지를 받는다 (`### 새로 확인된 사실 (4건)`)", () => {
+test("운영 형태: 건수가 붙은 신규 소제목도 배지를 받는다 (`### 새롭게 확인된 사실 (4건)`)", () => {
   const html = render(PRODUCTION_FIRST_RUN, true);
-  assert.match(html, /<h3 class="md-delta-fresh">새로 확인된 사실 \(4건\)<\/h3>/);
+  assert.match(html, /<h3 class="md-delta-fresh">새롭게 확인된 사실 \(4건\)<\/h3>/);
 });
 
 test("운영 형태: 불릿 없는 (기존)/(변경) 두 줄이 한 항목으로 묶인다", () => {
@@ -402,13 +402,13 @@ test("운영 형태: 최초 실행 안내 문장은 문단으로 남고 목록�
 
 test("운영 형태: 빈 줄로 나뉜 신규 팩트가 하나의 <ul> 로 이어진다", () => {
   const html = render(PRODUCTION_FIRST_RUN, true);
-  // <ul> 이 쪼개지면 항목 간격이 8px → 24px 로 벌어져 [달라진 사실] 묶음과 리듬이 어긋난다.
+  // <ul> 이 쪼개지면 항목 간격이 8px → 24px 로 벌어져 [변경된 사실] 묶음과 리듬이 어긋난다.
   assert.equal((html.match(/<ul class="md-delta-list md-delta-list-fresh">/g) ?? []).length, 1);
   assert.equal((html.match(/<li>/g) ?? []).length, 2);
 });
 
 test("빈 줄 뒤가 목록이 아니면 목록은 그대로 끊긴다(다음 블록 보존)", () => {
-  const html = render("## s\n### 달라진 사실 (1건)\n- 항목\n\n## 다음 섹션\n\n문단", true);
+  const html = render("## s\n### 변경된 사실 (1건)\n- 항목\n\n## 다음 섹션\n\n문단", true);
   assert.match(html, /<li>항목<\/li><\/ul>/);
   assert.match(html, /<h2 class="md-delta-section">다음 섹션<\/h2>/);
   assert.match(html, /<p>문단<\/p>/);
@@ -419,9 +419,9 @@ test("빈 줄 이어붙이기는 delta 에서만 — 기존 본문은 예전처�
   assert.equal((html.match(/<ul>/g) ?? []).length, 2);
 });
 
-test("운영 형태: 다음 섹션(## 보고서 내용)을 변경 항목 묶음이 삼키지 않는다", () => {
+test("운영 형태: 다음 섹션(## 내용)을 변경 항목 묶음이 삼키지 않는다", () => {
   const html = render(PRODUCTION_DELTA, true);
-  assert.match(html, /<h2 class="md-delta-section">보고서 내용<\/h2>/);
+  assert.match(html, /<h2 class="md-delta-section">내용<\/h2>/);
   assert.match(html, /<p>로또 미수령 당첨금 자동 지급 시스템이 시행됩니다\.<\/p>/);
 });
 
@@ -435,7 +435,7 @@ test("운영 형태: delta=false 면 예전 그대로 — 목록화·배지·취
 });
 
 test("건수 표기가 있어도 문구가 다르면 여전히 배지가 없다(부분 일치 금지 유지)", () => {
-  const html = render("## 이번에 달라진 점\n### 달라진 사실 안내 (2건)\n### 기타 (3건)\n- x", true);
-  assert.match(html, /<h3>달라진 사실 안내 \(2건\)<\/h3>/);
+  const html = render("## 변경사항\n### 변경된 사실 안내 (2건)\n### 기타 (3건)\n- x", true);
+  assert.match(html, /<h3>변경된 사실 안내 \(2건\)<\/h3>/);
   assert.match(html, /<h3>기타 \(3건\)<\/h3>/);
 });
