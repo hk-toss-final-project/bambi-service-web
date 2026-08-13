@@ -9,7 +9,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        // hover 는 알파를 낮추지 않고 밝기를 낮춘다. `bg-primary/80` 은 면을 **배경 쪽으로 흐려서**
+        // 라이트에서 흰 글자 대비가 5.30 → 3.78 로 도로 AA 미달이 됐다(FE-QA-002, 예: 프로필 편집).
+        // `brightness-.96` 은 면을 어둡게 해 대비가 5.68 로 오히려 올라가고, 앱의 나머지 손수 만든
+        // CTA 들이 이미 쓰는 방식이라 hover 감각도 통일된다(다크도 6.96 → 6.43 으로 안전).
+        default: "bg-primary text-primary-foreground hover:brightness-[.96]",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

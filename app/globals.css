@@ -77,18 +77,28 @@
   --card-foreground: #141619;      /* --ink */
   --popover: #FFFFFF;              /* --bg */
   --popover-foreground: #141619;   /* --ink */
-  --primary: #FF5A00;              /* --signal    : 브랜드 액션(.btn.signal) */
+  /* --signal : 브랜드 액션(.btn.signal).
+     원 토큰 #FF5A00 은 흰 글자와 3.13:1 로 WCAG AA(4.5:1) 미달이었다(FE-QA-002).
+     같은 주황 계열에서 명도만 낮춰 흰 글자 5.30:1 을 확보한다. 이 값은 `bg-primary` 면(흰 글자)뿐
+     아니라 `text-primary` 글자(카드 5.30 · bg-soft 4.90 · bg-primary/10 4.57)와
+     포커스 링(--ring, 비텍스트 3:1)까지 한 번에 만족하는 지점이다.
+     ⚠ 라이트 전용 변경 — 다크(.dark)의 #FF7A33 은 이미 통과하므로 건드리지 않는다. */
+  --primary: #BC4400;              /* --signal    : 브랜드 액션(.btn.signal) */
   --primary-foreground: #FFFFFF;   /* --on-signal */
   --secondary: #EEF0F3;            /* --bg-inset  : 중립 채움 ✅ 확정 2026-07-15 */
   --secondary-foreground: #141619; /* --ink */
   --muted: #EEF0F3;                /* --bg-inset  : 뮤트 표면 ✅ 확정 2026-07-15 */
-  --muted-foreground: #6B7280;     /* --ink-dim   : 흐린 보조 텍스트 */
+  /* --ink-dim : 흐린 보조 텍스트. #6B7280 은 페이지 배경(#F5F6F8)에서 4.47:1 로 AA 미달이었다
+     (FE-QA-002 — 다음 브리핑·날짜·비공개 배지·보고서 수·설정 설명). 같은 쿨그레이 계열에서
+     한 단계만 낮춰 실제로 얹히는 네 표면 모두 통과시킨다(bg-soft 4.97 · 카드 5.38 ·
+     inset 4.71 · today 5.19). --ink-mid(#454B54, 8.13)보다는 여전히 밝아 위계는 그대로다. */
+  --muted-foreground: #646B76;     /* --ink-dim   : 흐린 보조 텍스트 */
   --accent: #F5F6F8;               /* --bg-soft   : 중립 hover/active (.mi:hover 등) */
   --accent-foreground: #141619;    /* --ink */
   --destructive: #DC2626;          /* --err */
   --border: #E6E8EC;               /* --line      : 일반 테두리 */
   --input: #D7DBE0;                /* --line-strong: 입력 테두리(.field input) */
-  --ring: #FF5A00;                 /* --signal    : 포커스 링(input:focus border-color) */
+  --ring: #BC4400;                 /* --signal    : 포커스 링(input:focus border-color) — --primary 와 동일 값 유지 */
 
   /* 차트: P0 미사용 → shadcn 기본값 유지 (필요 시 status 팔레트로 재매핑) */
   --chart-1: oklch(0.87 0 0);
@@ -111,9 +121,16 @@
   --skel1: #EDEFF2;                /* --skel1 */
   --skel2: #F6F7F9;                /* --skel2 */
   /* 목업 전용 추가 토큰 — auth 화면 등에서 사용 */
-  --signal-ink: #E35200;           /* --signal-ink : 링크·강조 텍스트용 주황 */
+  /* --signal-ink : 링크·강조 텍스트용 주황. #E35200 은 밝은 배경에서 3.36~3.84:1 로 AA 미달이었다
+     (FE-QA-002 — 전체 보기·원문 열기 등). 이 토큰은 흰 배경뿐 아니라 wash 틴트(#FFF0E8·#F6E8E2)와
+     아바타 배경(#FCE4D4) 위에도 얹히므로, 그중 최악(#FCE4D4)에서 4.68:1 이 되는 지점까지 낮춘다.
+     surface 용 --primary(#BC4400)보다 한 단계 어둡다 — 기존 두 토큰의 명도 관계 그대로다. */
+  --signal-ink: #B14300;           /* --signal-ink : 링크·강조 텍스트용 주황 */
   --ink-mid: #454B54;              /* --ink-mid    : 중간 톤 텍스트 */
   --low: #A6ADB6;                  /* --low        : placeholder */
+  /* wash 계열은 **의도적으로 원래의 선명한 주황(255,90,0)을 유지한다.** 글자가 아니라 배경·테두리
+     틴트라 대비 기준이 걸리지 않고, --primary 를 낮춘 뒤 브랜드의 따뜻한 인상을 지탱하는 쪽이 여기다.
+     위 --signal-ink 대비 계산도 이 틴트가 만든 배경(#FFF0E8·#F6E8E2) 기준이다. */
   --wash: rgba(255, 90, 0, 0.09);  /* --wash       : 주황 틴트(포커스 링·그라데이션) */
   /* 목업 전용 추가 토큰 — 홈 피드에서 사용 */
   --wash-strong: rgba(255, 90, 0, 0.20); /* --wash-strong : 주황 틴트(테두리) */
