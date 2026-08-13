@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { fetchReport, type ReportResult } from "@/lib/repositories/report";
 
 /**
@@ -23,7 +23,7 @@ import { fetchReport, type ReportResult } from "@/lib/repositories/report";
 export type ReportDetailState =
   | { status: "loading" }
   | ReportResult
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useReportDetail(id: string): ReportDetailState & { refetch: () => void } {
   const { status } = useAuth();
@@ -32,6 +32,6 @@ export function useReportDetail(id: string): ReportDetailState & { refetch: () =
   const state = useAsyncData<ReportResult>(fetcher, enabled);
 
   if (state.status === "success") return { ...state.data, refetch: state.refetch };
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

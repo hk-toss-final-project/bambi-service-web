@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { fetchInterestTaxonomy } from "@/lib/repositories/interest-taxonomy";
 import type { InterestTaxonomyDto } from "@/types/interest";
 
@@ -14,7 +14,7 @@ import type { InterestTaxonomyDto } from "@/types/interest";
 export type InterestTaxonomyState =
   | { status: "loading" }
   | { status: "success"; data: InterestTaxonomyDto }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useInterestTaxonomy(): InterestTaxonomyState & { refetch: () => void } {
   const fetcher = useCallback((signal: AbortSignal) => fetchInterestTaxonomy(signal), []);
@@ -23,6 +23,6 @@ export function useInterestTaxonomy(): InterestTaxonomyState & { refetch: () => 
   if (state.status === "success") {
     return { status: "success", data: state.data, refetch: state.refetch };
   }
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch };
 }

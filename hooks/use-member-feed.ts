@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { toFeedCardVM } from "@/lib/adapters/card";
 import { fetchMemberFeed } from "@/lib/repositories/feed";
 import type { FeedCardVM } from "@/types/feed";
@@ -25,7 +25,7 @@ export type MemberFeedState =
   | { status: "loading" }
   | { status: "success"; data: FeedCardVM[] }
   | { status: "empty" }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export type MemberFeedApi = MemberFeedState & {
   refetch: () => void;
@@ -42,7 +42,7 @@ export function useMemberFeed(): MemberFeedApi {
 
   const common = { refetch: state.refetch };
 
-  if (state.status === "error") return { status: "error", ...common };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, ...common };
   if (state.status !== "success") return { status: "loading", ...common }; // idle · loading → 데이터 로딩
   if (state.data.length === 0) return { status: "empty", ...common };
   return { status: "success", data: state.data, ...common };

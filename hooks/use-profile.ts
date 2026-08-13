@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { toAuthorCards } from "@/lib/adapters/profile";
 import { fetchAuthorCards, fetchProfile } from "@/lib/repositories/profile";
 import type { AuthorCardVM, Profile } from "@/types/profile";
@@ -17,7 +17,7 @@ import type { AuthorCardVM, Profile } from "@/types/profile";
 export type ProfileState =
   | { status: "loading" }
   | { status: "success"; data: Profile }
-  | { status: "error" }; // 없는 사용자(404)도 error — 화면이 "찾을 수 없음" 카피로 안내
+  | AsyncErrorState; // 없는 사용자(404)도 error — 화면이 "찾을 수 없음" 카피로 안내
 
 export function useProfile(publicId: string): ProfileState & { refetch: () => void } {
   const { status } = useAuth();
@@ -31,7 +31,8 @@ export function useProfile(publicId: string): ProfileState & { refetch: () => vo
   const state = useAsyncData<Profile>(fetcher, enabled);
 
   if (state.status === "success") return { status: "success", data: state.data, refetch: state.refetch };
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error")
+    return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch };
 }
 

@@ -10,7 +10,8 @@ import { ChipCheckIcon, InterestPicker } from "@/components/onboarding/interest-
 import { PageState } from "@/components/ui/page-state";
 import { IconAlert } from "@/components/ui/state-icons";
 import { StateView } from "@/components/ui/state-view";
-import { ERROR_CODES } from "@/constants/errors";
+import { ERROR_CODES, type ErrorCode } from "@/constants/errors";
+import { INTEREST_SELECTION_MAX } from "@/constants/interests";
 import { useOnboardingInterests } from "@/hooks/use-onboarding-interests";
 import { ApiError } from "@/lib/api-client";
 import { replaceUserInterests } from "@/lib/repositories/interests";
@@ -23,6 +24,8 @@ import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
  *
  * 핵심 정책:
  * - 관심사 **최소 1개 필수** — 건너뛰기 없음. 0개면 제출 CTA 비활성.
+ * - 관심사 **최대 {@link INTEREST_SELECTION_MAX}개** — agent 계약값이라 넘기면 저장 자체가 실패한다
+ *   (context 동기화 422 → 503). 화면이 먼저 막지 않으면 사용자는 이유를 모른 채 재시도만 하게 된다.
  * - 여기서 고른 관심사는 사용자가 직접 설정한 값(source=USER, 서버가 강제).
  *   agent 자동 추론 태그(INFERRED · /api/wiki/tags)는 조회·저장 어느 쪽에도 섞지 않는다.
  * - 저장한 관심사의 선택 순서를 Service에 확정하면 최대 3개의 첫 리포트가 비동기 등록된다.
@@ -46,7 +49,8 @@ function OnboardingView() {
 
   if (interests.status === "loading") return <OnboardingSkeleton />;
   // 조회 실패는 "선택 0개"로 위장하지 않는다 — 별도 오류 상태 + 재시도.
-  if (interests.status === "error") return <OnboardingLoadError onRetry={interests.refetch} />;
+  if (interests.status === "error")
+    return <OnboardingLoadError onRetry={interests.refetch} errorCode={interests.errorCode} />;
   return <OnboardingFlow initial={interests.data.interests} taxonomy={interests.data.taxonomy} />;
 }
 
@@ -93,16 +97,29 @@ function OnboardingFlow({
   const submittingRef = useRef(false);
 
   const selectedSet = new Set(selected);
-  const canSubmit = selected.length >= 1 && !submitting;
+  /*
+    상한을 넘긴 상태로는 제출을 막는다 — 서버가 어차피 거절하므로(agent 422 → 503) 눌러봐야
+    "잠시 후 다시 시도해 주세요" 만 반복된다. 재진입해서 이미 13개 이상 갖고 있는 사용자도
+    여기 걸리므로, 아래 안내가 "몇 개를 빼야 하는지"까지 알려준다.
+  */
+  const overLimit = selected.length > INTEREST_SELECTION_MAX;
+  const atLimit = selected.length >= INTEREST_SELECTION_MAX;
+  const canSubmit = selected.length >= 1 && !overLimit && !submitting;
 
   function toggle(name: string) {
     setSaveError(null);
-    setSelected((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+    setSelected((prev) => {
+      if (prev.includes(name)) return prev.filter((n) => n !== name);
+      // 해제는 언제나 되고 추가만 막는다 — 상한을 넘긴 상태에서도 줄일 수 있어야 한다.
+      if (prev.length >= INTEREST_SELECTION_MAX) return prev;
+      return [...prev, name];
+    });
   }
 
   /** 직접 추가 — 카탈로그에 있으면 선택만, 없으면 custom 그룹에 추가 후 선택. API 호출 없음(저장은 제출에서). */
   function handleAdd(name: string) {
     setSaveError(null);
+    if (selected.length >= INTEREST_SELECTION_MAX && !selected.includes(name)) return;
     if (!catalogTopicNames.has(name)) {
       setCustomTopics((prev) => (prev.includes(name) ? prev : [...prev, name]));
     }
@@ -237,6 +254,7 @@ function OnboardingFlow({
                 customTopics={customTopics}
                 selected={selectedSet}
                 disabled={submitting}
+                atLimit={atLimit}
                 onToggle={toggle}
                 onOpenAdd={() => setAddOpen(true)}
               />
@@ -259,8 +277,20 @@ function OnboardingFlow({
               <span aria-live="polite" className="text-[13px] text-muted-foreground">
                 선택 <b className="font-bold text-signal-ink">{selected.length}</b>개
               </span>
-              {/* .ob-hint */}
-              <span className="text-xs text-muted-foreground">최소 1개</span>
+              {/*
+                .ob-hint — 상한은 agent 계약값이라 넘기면 저장 자체가 안 된다(constants/interests.ts).
+                평소엔 범위만 알려주고, 꽉 찼을 때만 왜 더 안 눌리는지 말해준다.
+              */}
+              <span
+                aria-live="polite"
+                className={`text-xs ${atLimit ? "font-semibold text-signal-ink" : "text-muted-foreground"}`}
+              >
+                {overLimit
+                  ? `최대 ${INTEREST_SELECTION_MAX}개 — ${selected.length - INTEREST_SELECTION_MAX}개를 빼주세요`
+                  : atLimit
+                    ? `최대 ${INTEREST_SELECTION_MAX}개까지 골랐어요`
+                    : `최소 1개 · 최대 ${INTEREST_SELECTION_MAX}개`}
+              </span>
               <span className="flex-1" />
               {/* .btn.signal (+.dis 45% 흐림) */}
               <button
@@ -337,7 +367,13 @@ function OnboardingSkeleton() {
 }
 
 /** 관심사 조회 실패 — 선택 0개로 위장하지 않고 오류 + 재시도를 보여준다(저장 오류와 별개). */
-function OnboardingLoadError({ onRetry }: { onRetry: () => void }) {
+function OnboardingLoadError({
+  onRetry,
+  errorCode,
+}: {
+  onRetry: () => void;
+  errorCode?: ErrorCode;
+}) {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-card">
       <OnboardingHeader />
@@ -348,6 +384,7 @@ function OnboardingLoadError({ onRetry }: { onRetry: () => void }) {
           icon={<IconAlert />}
           title="관심사를 불러오지 못했어요"
           description="네트워크나 서버 상태를 확인한 뒤 다시 시도해 주세요."
+          errorCode={errorCode}
           actions={[
             { label: "다시 시도", onClick: onRetry, variant: "primary" },
             { label: "홈으로", href: "/", variant: "ghost" },

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { fetchWikiDocuments } from "@/lib/repositories/wiki";
 import type { WikiDocument } from "@/types/wiki";
 
@@ -17,7 +17,7 @@ export type WikiDocumentsState =
   | { status: "loading" }
   | { status: "success"; data: WikiDocument[] }
   | { status: "empty" }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useWikiDocuments(): WikiDocumentsState & { refetch: () => void } {
   const { status } = useAuth();
@@ -30,6 +30,6 @@ export function useWikiDocuments(): WikiDocumentsState & { refetch: () => void }
       ? { status: "success", data: state.data, refetch: state.refetch }
       : { status: "empty", refetch: state.refetch };
   }
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

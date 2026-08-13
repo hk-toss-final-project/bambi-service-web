@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { fetchCardDetail, type CardDetailResult } from "@/lib/repositories/report";
 import type { CardResponse } from "@/types/feed";
 
@@ -24,7 +24,7 @@ export type CardDetailState =
   | { status: "loading" }
   | { status: "ready"; card: CardResponse }
   | { status: "notFound" }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useCardDetail(publicId: string): CardDetailState & { refetch: () => void } {
   const { status } = useAuth();
@@ -41,6 +41,9 @@ export function useCardDetail(publicId: string): CardDetailState & { refetch: ()
       ? { status: "ready", card: state.data.card, refetch: state.refetch }
       : { status: "notFound", refetch: state.refetch };
   }
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  // 원인 코드는 그대로 넘긴다 — 화면이 권한(FORBIDDEN)·AI 장애(AGENT_UNAVAILABLE)를 구분해 안내한다.
+  if (state.status === "error") {
+    return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
+  }
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

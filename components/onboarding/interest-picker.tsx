@@ -15,6 +15,7 @@ export function InterestPicker({
   customTopics,
   selected,
   disabled,
+  atLimit,
   onToggle,
   onOpenAdd,
 }: {
@@ -25,6 +26,12 @@ export function InterestPicker({
   selected: ReadonlySet<string>;
   /** 저장(제출) 중 상호작용 차단. */
   disabled: boolean;
+  /**
+   * 선택 상한에 도달 — <b>미선택 chip 만</b> 비활성한다. 이미 고른 것은 그대로 눌러서 뺄 수 있어야
+   * 상한에 걸린 사용자가 스스로 빠져나올 수 있다. 눌러도 아무 일이 없는 것보다 흐려져서 안 눌리는
+   * 편이 이유가 드러난다(하단 안내가 "최대 N개까지 골랐어요" 를 함께 말한다).
+   */
+  atLimit: boolean;
   onToggle: (name: string) => void;
   onOpenAdd: () => void;
 }) {
@@ -44,7 +51,7 @@ export function InterestPicker({
                 key={topic.id}
                 name={topic.name}
                 selected={selected.has(topic.name)}
-                disabled={disabled}
+                disabled={disabled || (atLimit && !selected.has(topic.name))}
                 onToggle={() => onToggle(topic.name)}
               />
             ))}
@@ -59,7 +66,7 @@ export function InterestPicker({
         <button
           type="button"
           onClick={onOpenAdd}
-          disabled={disabled}
+          disabled={disabled || atLimit}
           className="focus-ring inline-flex items-center gap-[7px] rounded-full border-[1.5px] border-dashed border-primary bg-card px-4 py-[9px] text-[13.5px] font-bold whitespace-nowrap text-signal-ink hover:bg-wash disabled:opacity-45"
         >
           + 관심사 직접 추가
@@ -76,7 +83,7 @@ export function InterestPicker({
                 key={topic}
                 name={topic}
                 selected={selected.has(topic)}
-                disabled={disabled}
+                disabled={disabled || (atLimit && !selected.has(topic))}
                 onToggle={() => onToggle(topic)}
               />
             ))}

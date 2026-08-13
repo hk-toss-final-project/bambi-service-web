@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import type { ErrorCode } from "@/constants/errors";
 import { StateView, type StateAction } from "@/components/ui/state-view";
 
 /**
@@ -14,6 +15,7 @@ export function PageState({
   iconTone,
   title,
   description,
+  errorCode,
   actions,
   role,
 }: {
@@ -21,6 +23,8 @@ export function PageState({
   iconTone?: "neutral" | "brand";
   title: string;
   description?: ReactNode;
+  /** 오류 코드 전달용 — 해석 규칙은 StateView 가 단독으로 갖는다(여기선 넘기기만 한다). */
+  errorCode?: ErrorCode;
   actions?: StateAction[];
   role?: "status" | "alert";
 }) {
@@ -34,6 +38,7 @@ export function PageState({
         iconTone={iconTone}
         title={title}
         description={description}
+        errorCode={errorCode}
         actions={actions}
       />
     </div>

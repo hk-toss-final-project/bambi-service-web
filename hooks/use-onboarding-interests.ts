@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { fetchInterestTaxonomy } from "@/lib/repositories/interest-taxonomy";
 import { fetchUserInterests } from "@/lib/repositories/interests";
 import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
@@ -20,7 +20,7 @@ import type { InterestDto, InterestTaxonomyDto } from "@/types/interest";
 export type OnboardingInterestsState =
   | { status: "loading" }
   | { status: "ready"; data: OnboardingInterestData }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export type OnboardingInterestData = {
   interests: InterestDto[];
@@ -40,6 +40,6 @@ export function useOnboardingInterests(): OnboardingInterestsState & { refetch: 
   const state = useAsyncData<OnboardingInterestData>(fetcher, enabled);
 
   if (state.status === "success") return { status: "ready", data: state.data, refetch: state.refetch };
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

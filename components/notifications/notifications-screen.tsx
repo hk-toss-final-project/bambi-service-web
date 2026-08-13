@@ -81,6 +81,7 @@ function NotificationsView() {
                 icon={<IconAlert />}
                 title="알림을 불러오지 못했어요"
                 description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."
+                errorCode={notifications.errorCode}
                 actions={[{ label: "다시 시도", onClick: notifications.refetch, variant: "primary" }]}
               />
             ) : notifications.data.items.length === 0 ? (

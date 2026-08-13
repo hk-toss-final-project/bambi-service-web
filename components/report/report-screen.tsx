@@ -16,6 +16,7 @@ import { ReportBodySections } from "@/components/report/report-body-sections";
 import { PageState } from "@/components/ui/page-state";
 import { IconAlert } from "@/components/ui/state-icons";
 import { StateView } from "@/components/ui/state-view";
+import type { ErrorCode } from "@/constants/errors";
 import { useReportDetail } from "@/hooks/use-report-detail";
 import { MOCK_SOURCES, type ReportDetail } from "@/lib/mock/report";
 
@@ -44,7 +45,8 @@ export function ReportScreen({ id }: { id: string }) {
 
   // 2) 데이터(리포트) 상태 — 인증 확정 이후에만 평가한다.
   if (detail.status === "loading") return <ReportSkeleton />;
-  if (detail.status === "error") return <ReportDataError onRetry={detail.refetch} />;
+  if (detail.status === "error")
+    return <ReportDataError onRetry={detail.refetch} errorCode={detail.errorCode} />;
   // 개인(owner-only) 경로에 guest 접근 → 본문·생성상태 대신 접근 제한 UI (ready·preparing 공통)
   if (status === "guest" && !detail.allowGuest) return <ReportAccessRestricted />;
   if (detail.status === "preparing") return <ReportPreparing />;
@@ -468,7 +470,7 @@ function ReportAccessRestricted() {
  * 리포트 데이터 로드 실패(error) — 목업 report-detail-image-states.html "에러".
  * public 으로 대체하지 않고 재시도(router.refresh 로 서버 재요청)를 제공한다(§9 Error · §4 INTERNAL_ERROR).
  */
-function ReportDataError({ onRetry }: { onRetry: () => void }) {
+function ReportDataError({ onRetry, errorCode }: { onRetry: () => void; errorCode?: ErrorCode }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
@@ -479,6 +481,7 @@ function ReportDataError({ onRetry }: { onRetry: () => void }) {
           icon={<IconAlert />}
           title="브리핑을 불러오지 못했어요"
           description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."
+          errorCode={errorCode}
           actions={[
             { label: "다시 시도", onClick: onRetry, variant: "primary" },
             { label: "홈 피드로", href: "/", variant: "ghost" },

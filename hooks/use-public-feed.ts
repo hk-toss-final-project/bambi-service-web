@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { toPublicFeedCards } from "@/lib/adapters/card";
 import {
   MIXED_FEED_LIMIT,
@@ -58,7 +58,7 @@ export type PublicFeedState =
   | { status: "loading" }
   | { status: "success"; data: PublicFeedCardVM[] }
   | { status: "empty" }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function usePublicFeed(): PublicFeedState & { refetch: () => void } {
   const { status, user } = useAuth();
@@ -121,6 +121,6 @@ export function usePublicFeed(): PublicFeedState & { refetch: () => void } {
       ? { status: "success", data: state.data, refetch: state.refetch }
       : { status: "empty", refetch: state.refetch };
   }
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

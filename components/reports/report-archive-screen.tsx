@@ -82,6 +82,7 @@ function ArchiveView() {
                 icon={<IconAlert />}
                 title="보고서 목록을 불러오지 못했어요"
                 description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."
+                errorCode={archive.errorCode}
                 actions={[{ label: "다시 시도", onClick: archive.refetch, variant: "primary" }]}
               />
             )}

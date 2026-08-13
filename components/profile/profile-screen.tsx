@@ -87,6 +87,7 @@ export function ProfileScreen({
                 icon={<IconAlert />}
                 title="프로필을 찾을 수 없어요"
                 description="주소가 잘못됐거나, 탈퇴했거나, 잠시 연결이 불안정할 수 있어요."
+                errorCode={profile.errorCode}
                 actions={[{ label: "다시 시도", onClick: profile.refetch, variant: "primary" }]}
               />
             )}

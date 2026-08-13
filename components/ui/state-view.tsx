@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { FALLBACK_ERROR_CODE, resolveErrorMessage, type ErrorCode } from "@/constants/errors";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,6 +28,7 @@ export function StateView({
   iconTone = "neutral",
   title,
   description,
+  errorCode,
   actions,
   role,
   className,
@@ -36,6 +38,15 @@ export function StateView({
   iconTone?: "neutral" | "brand";
   title: string;
   description?: ReactNode;
+  /**
+   * 서버가 준 오류 코드(있을 때만). 원인이 특정되는 코드면 설명을 `ERROR_MESSAGES` 공통 문구로
+   * 대체한다 — 화면마다 권한·AI 장애 문구를 새로 쓰지 않기 위해서다(§4 단일 소스).
+   *
+   * 일반 오류(INTERNAL_ERROR)와 코드 없음(네트워크 단절)은 **호출부가 준 기존 description 을 그대로**
+   * 둔다. 두 경우의 공통 문구가 곧 fallback 이라 덮어써도 정보가 늘지 않고, 화면별로 다듬어 둔
+   * 기존 안내만 잃기 때문이다. 서버 error.message 원문은 어느 경로로도 여기 닿지 않는다(§3).
+   */
+  errorCode?: ErrorCode;
   actions?: StateAction[];
   role?: "status" | "alert";
   className?: string;
@@ -43,6 +54,8 @@ export function StateView({
   size?: "compact" | "page";
 }) {
   const isPage = size === "page";
+  const body =
+    errorCode && errorCode !== FALLBACK_ERROR_CODE ? resolveErrorMessage(errorCode) : description;
   return (
     <div
       role={role}
@@ -72,14 +85,14 @@ export function StateView({
       >
         {title}
       </h2>
-      {description != null && (
+      {body != null && (
         <div
           className={cn(
             "text-pretty leading-[1.7] text-ink-mid",
             isPage ? "max-w-[360px] text-[14px]" : "max-w-[340px] text-[13px]",
           )}
         >
-          {description}
+          {body}
         </div>
       )}
       {actions && actions.length > 0 && (

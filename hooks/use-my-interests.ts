@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { fetchUserInterests } from "@/lib/repositories/interests";
 import type { InterestDto } from "@/types/interest";
 
@@ -17,7 +17,7 @@ import type { InterestDto } from "@/types/interest";
 export type MyInterestsState =
   | { status: "loading" }
   | { status: "success"; data: InterestDto[] }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useMyInterests(): MyInterestsState & { refetch: () => void } {
   const { status } = useAuth();
@@ -27,6 +27,6 @@ export function useMyInterests(): MyInterestsState & { refetch: () => void } {
   const state = useAsyncData<InterestDto[]>(fetcher, enabled, true);
 
   if (state.status === "success") return { status: "success", data: state.data, refetch: state.refetch };
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

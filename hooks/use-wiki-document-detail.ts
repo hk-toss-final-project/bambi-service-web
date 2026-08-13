@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import {
   fetchWikiDocumentDetail,
   type WikiDocumentDetailResult,
@@ -16,7 +16,7 @@ export type WikiDocumentDetailState =
   | { status: "loading" }
   | { status: "ready"; document: WikiDocumentDetail }
   | { status: "notFound" }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useWikiDocumentDetail(
   documentId: string | null,
@@ -40,6 +40,6 @@ export function useWikiDocumentDetail(
       ? { status: "ready", document: state.data.document, refetch: state.refetch }
       : { status: "notFound", refetch: state.refetch };
   }
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch };
 }

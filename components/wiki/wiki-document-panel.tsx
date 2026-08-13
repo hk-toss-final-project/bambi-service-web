@@ -94,6 +94,7 @@ export function WikiDocumentPanel({
             icon={<IconAlert />}
             title="노드 상세를 불러오지 못했어요"
             description="잠시 후 다시 시도해 주세요."
+            errorCode={state.errorCode}
             actions={[
               { label: "다시 시도", onClick: state.refetch, variant: "primary" },
               { label: "닫기", onClick: onClear, variant: "ghost" },

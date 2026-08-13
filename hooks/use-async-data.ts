@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import type { ErrorCode } from "@/constants/errors";
+import { ApiError } from "@/lib/api-client";
+
 /**
  * 공통 비동기 데이터 프리미티브 — loading / success / error + refetch.
  * 도메인 훅(usePublicFeed·useMemberFeed·useReportDetail 등)이 공유한다.
@@ -14,16 +17,28 @@ import { useCallback, useEffect, useState } from "react";
  *   → effect 본문에서 동기 setState 를 하지 않아 set-state-in-effect 를 피하고,
  *     입력(fetcher·reload)이 바뀌는 순간 즉시 loading 으로 돌아간다(오래된 결과 노출 없음).
  * - 언마운트·경합은 effect 내부 ignore 플래그 + AbortController 로 막는다(늦은/취소된 응답 커밋 차단).
+ * - 실패는 `errorCode` 로 **원인을 보존**한다(FE-QA-001). 이전에는 status="error" 만 남겨서
+ *   FORBIDDEN·AGENT_UNAVAILABLE·500·네트워크 끊김이 화면에서 전부 같은 문구로 보였다.
  */
+
+/**
+ * 실패 상태의 공통 모양 — 도메인 훅이 자기 상태 union 을 만들 때 이 타입을 재사용한다.
+ *
+ * `errorCode` 가 **optional** 인 건 계약이다: 네트워크 오류(fetch 자체 실패)처럼 서버 응답이
+ * 없으면 코드가 존재하지 않는다. 소비 측은 "없을 수 있음"을 전제로 `resolveErrorMessage` 의
+ * fallback(§4)에 맡긴다 — 코드가 없다고 별도 문구를 새로 만들지 않는다.
+ */
+export type AsyncErrorState = { status: "error"; errorCode?: ErrorCode };
+
 export type AsyncState<T> =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "success"; data: T }
-  | { status: "error" };
+  | AsyncErrorState;
 
 type Settled<T> =
   | { fetcher: unknown; reload: number; status: "success"; data: T }
-  | { fetcher: unknown; reload: number; status: "error" };
+  | ({ fetcher: unknown; reload: number } & AsyncErrorState);
 
 /**
  * @param keepPreviousData refetch 중에도 직전 성공 데이터를 유지할지 (기본 false).
@@ -52,10 +67,13 @@ export function useAsyncData<T>(
       .then((data) => {
         if (!ignore) setSettled({ fetcher, reload, status: "success", data });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         // abort 로 인한 거부는 오류로 취급하지 않는다(언마운트·재조회 정리).
         if (!ignore && !controller.signal.aborted) {
-          setSettled({ fetcher, reload, status: "error" });
+          // ApiError.code 는 공통 client 가 이미 정규화한 값이다(미상 코드 → INTERNAL_ERROR).
+          // ApiError 가 아니면(네트워크 단절·JSON 파싱 실패 등) 코드가 없으므로 undefined 로 둔다.
+          const errorCode = error instanceof ApiError ? error.code : undefined;
+          setSettled({ fetcher, reload, status: "error", errorCode });
         }
       });
     return () => {
@@ -71,7 +89,7 @@ export function useAsyncData<T>(
   if (settled && settled.fetcher === fetcher && settled.reload === reload) {
     return settled.status === "success"
       ? { status: "success", data: settled.data, refetch }
-      : { status: "error", refetch };
+      : { status: "error", errorCode: settled.errorCode, refetch };
   }
   // 재조회 중(같은 fetcher, reload 만 증가)이고 직전 성공 데이터가 있으면 그대로 보여준다.
   if (keepPreviousData && settled?.status === "success" && settled.fetcher === fetcher) {

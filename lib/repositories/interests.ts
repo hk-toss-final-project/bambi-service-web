@@ -62,7 +62,7 @@ export async function deleteInterest(id: number, signal?: AbortSignal): Promise<
  * 사용자 데이터가 유실된 상태로 남는다(추가 먼저면 실패 시점에도 기존 값은 전부 보존).
  * 1) 선택됐는데 current 에 없는 것 → POST. 이미 존재(DUPLICATE_RESOURCE)하면
  *    목표 상태(있음)가 이미 달성된 것이므로 성공으로 취급한다.
- * 2) current(USER)에 있는데 선택 해제된 것 → DELETE. 이미 사라진 경우(NOT_FOUND)는
+ * 2) **서버에 실제로 있는데** 선택 해제된 것 → DELETE. 이미 사라진 경우(NOT_FOUND)는
  *    목표 상태(없음)가 이미 달성된 것이므로 성공으로 취급한다.
  *    → 부분 실패 후 재시도해도 같은 호출로 수렴한다(멱등).
  * 3) 마지막에 GET 으로 서버 확정본을 다시 읽는다.
@@ -96,7 +96,20 @@ export async function replaceUserInterests(
     }
   }
 
-  for (const interest of current) {
+  /*
+    삭제 기준은 호출부가 넘긴 `current` 가 아니라 **서버 실상태**다(2026-08-13).
+
+    `current` 는 화면이 들고 있는 목록이라 이 호출 안에서 방금 만든 관심사가 빠져 있다.
+    그래서 "직접 추가했다가 선택 해제한 항목"이 서버에는 남는데 삭제 대상이 되지 않았다.
+    그러면 `/api/onboarding/complete` 가 요구하는 "현재 관심사 전체와 보낸 ID 목록이 일치"
+    조건이 깨져 400 이 나고, 400 이 나면 호출부의 `setCurrent(canonical)` 이 실행되지 않아
+    `current` 가 낡은 채로 남는다 → 다시 눌러도 같은 400 이 반복되는 고착 상태가 됐다.
+
+    서버가 실제로 갖고 있는 목록을 기준으로 지우면 이전 실패로 남은 잔여물까지 함께 정리돼
+    한 번의 재시도로 스스로 회복한다. 비용은 GET 한 번이다.
+  */
+  const persisted = await fetchUserInterests();
+  for (const interest of persisted) {
     if (target.has(interest.name)) continue;
     try {
       await deleteInterest(interest.id);

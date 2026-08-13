@@ -17,6 +17,26 @@ export type InterestCategory = {
 /** 서버 계약의 name 최대 길이 — InterestRequest @Size(max=100) · V1 스키마 length=100 (실측). */
 export const INTEREST_NAME_MAX = 100;
 
+/**
+ * 한 사용자가 고를 수 있는 관심사 최대 개수.
+ *
+ * **agent 계약이 정한 값이다(우리가 고른 UX 숫자가 아니다).** Service 가 관심사를 저장·삭제할
+ * 때마다 agent `/internal/v1/users/{id}/context` 로 전체 목록을 동기화하는데, 그 요청의
+ * `selected_topic_ids` 가 12개를 넘으면 agent 가 422 로 거절한다.
+ *
+ * ```
+ * {"code": "REQUEST_VALIDATION_ERROR",
+ *  "details": [{"type": "too_long",
+ *               "message": "List should have at most 12 items after validation, not 17",
+ *               "location": "body.selected_topic_ids"}]}
+ * ```
+ *
+ * 그동안 아무도 몰랐던 이유는 성공한 동기화 453건이 전부 12개 이하였기 때문이다. 2026-08-13 에
+ * 13개 이상 고른 사용자가 처음 나왔고, 온보딩이 503 으로 막히면서 드러났다. 화면이 먼저 막지
+ * 않으면 사용자는 이유를 모른 채 "잠시 후 다시 시도해 주세요" 만 반복해서 보게 된다.
+ */
+export const INTEREST_SELECTION_MAX = 12;
+
 export const ONBOARDING_INTEREST_CATALOG: InterestCategory[] = [
   {
     label: "시장 · 경제",

@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 
 import { useAuth } from "@/components/auth/use-auth";
-import { useAsyncData } from "@/hooks/use-async-data";
+import { useAsyncData, type AsyncErrorState } from "@/hooks/use-async-data";
 import { toArchiveCard } from "@/lib/adapters/report-archive";
 import { toArchiveItems } from "@/lib/adapters/report-archive-mock";
 import { fetchMemberFeed } from "@/lib/repositories/feed";
@@ -21,7 +21,7 @@ import type { ArchiveItem } from "@/types/report-archive";
 export type ReportArchiveState =
   | { status: "loading" }
   | { status: "ready"; data: ArchiveItem[] }
-  | { status: "error" };
+  | AsyncErrorState;
 
 export function useReportArchive(): ReportArchiveState & { refetch: () => void } {
   const { status } = useAuth();
@@ -34,6 +34,6 @@ export function useReportArchive(): ReportArchiveState & { refetch: () => void }
   const state = useAsyncData<ArchiveItem[]>(fetcher, enabled);
 
   if (state.status === "success") return { status: "ready", data: state.data, refetch: state.refetch };
-  if (state.status === "error") return { status: "error", refetch: state.refetch };
+  if (state.status === "error") return { status: "error", errorCode: state.errorCode, refetch: state.refetch };
   return { status: "loading", refetch: state.refetch }; // idle · loading → 데이터 로딩
 }

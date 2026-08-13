@@ -17,6 +17,7 @@ import { CardScrapButton } from "@/components/report/card-scrap-button";
 import { CardVisibilityToggle } from "@/components/report/card-visibility-toggle";
 import { ReportTypeBadge } from "@/components/report/report-type-badge";
 import { CopyToast } from "@/components/ui/copy-toast";
+import type { ErrorCode } from "@/constants/errors";
 import { useCardDetail } from "@/hooks/use-card-detail";
 import { useCopyCardLink } from "@/hooks/use-copy-card-link";
 import { useReportBody, type ReportBodyState } from "@/hooks/use-report-body";
@@ -81,7 +82,8 @@ export function CardDetailScreen({
   // 2) 데이터 상태 — 인증 확정(guest·authenticated) 후에 평가한다.
   //    guest 도 여기까지 온다: PUBLIC 이면 상세가 뜨고, 아니면 API 404 → DetailNotFound.
   if (detail.status === "loading") return <DetailSkeleton />;
-  if (detail.status === "error") return <DetailDataError onRetry={detail.refetch} />;
+  if (detail.status === "error")
+    return <DetailDataError onRetry={detail.refetch} errorCode={detail.errorCode} />;
   if (detail.status === "notFound") return <DetailNotFound />;
   return (
     <CardDetailView
@@ -611,8 +613,11 @@ function DetailAuthError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/** 카드 데이터 로드 실패(error) — 재시도(refetch). */
-function DetailDataError({ onRetry }: { onRetry: () => void }) {
+/**
+ * 카드 데이터 로드 실패(error) — 재시도(refetch).
+ * 원인이 특정되는 코드(권한·AI 장애)면 StateView 가 설명을 공통 문구로 바꾼다. 제목·액션은 그대로다.
+ */
+function DetailDataError({ onRetry, errorCode }: { onRetry: () => void; errorCode?: ErrorCode }) {
   return (
     <div className="min-h-screen bg-background">
       <HomeNav onAddOpen={() => {}} />
@@ -623,6 +628,7 @@ function DetailDataError({ onRetry }: { onRetry: () => void }) {
           icon={<IconAlert />}
           title="카드를 불러오지 못했어요"
           description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."
+          errorCode={errorCode}
           actions={[
             { label: "다시 시도", onClick: onRetry, variant: "primary" },
             // 홈 `/` 의 기본 탭은 [내 보고서]라 문구대로 피드에 닿으려면 탭을 명시해야 한다.

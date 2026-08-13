@@ -1,8 +1,10 @@
 import { http, HttpResponse } from "msw";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 
 import { CardDetailScreen } from "@/components/report/card-detail-screen";
+import { ERROR_MESSAGES } from "@/constants/errors";
 import type { CardResponse } from "@/types/feed";
 import type { ReportResponse } from "@/types/report";
 
@@ -56,6 +58,20 @@ function ok<T>(data: T) {
   return HttpResponse.json({ success: true, data, error: null });
 }
 
+/**
+ * 공통 응답 봉투(§3) — 실패. message 에는 **서버 원문**을 넣는다.
+ * 어떤 코드에서도 이 원문이 화면에 새지 않아야 한다(§2 로깅 전용).
+ */
+function fail(code: string, message: string, status: number) {
+  return HttpResponse.json({ success: false, data: null, error: { code, message } }, { status });
+}
+
+/** 화면이 카드 조회 실패로 들어갈 때까지 기다린다 — 오류 화면의 제목은 코드와 무관하게 같다. */
+async function renderCardError() {
+  renderWithProviders(<CardDetailScreen publicId={CARD_ID} origin={{ token: "feed" }} />);
+  return screen.findByText("카드를 불러오지 못했어요");
+}
+
 describe("보고서 상세 화면", () => {
   test("조회에 성공하면 보고서 제목과 본문을 보여준다", async () => {
     server.use(
@@ -93,5 +109,81 @@ describe("보고서 상세 화면", () => {
     expect(await screen.findByText("카드를 불러오지 못했어요")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
     expect(screen.queryByText(/db connection refused/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * FE-QA-001 — 실패 원인별 안내 구분.
+ *
+ * 결함: `useAsyncData` 가 오류의 `error.code` 를 버리고 status="error" 만 남겨서, 권한 없음·AI 장애·
+ * 일반 500·네트워크 끊김이 화면에서 **전부 같은 문구**로 보였다. 원인이 보존되는지를 사용자가 읽는
+ * 문구로 검증한다(훅 내부 상태를 들여다보지 않는다).
+ *
+ * 문구는 테스트에 다시 적지 않고 `ERROR_MESSAGES`(§4 단일 소스)를 참조한다 —
+ * 여기에 문자열을 복사하면 매핑이 바뀌어도 테스트가 계속 통과해 버린다.
+ */
+describe("보고서 상세 화면 — 실패 원인별 안내", () => {
+  test("403 FORBIDDEN 이면 권한 안내를 보여준다", async () => {
+    server.use(http.get(CARD_ENDPOINT, () => fail("FORBIDDEN", "access denied for user 42", 403)));
+
+    expect(await renderCardError()).toBeInTheDocument();
+    expect(screen.getByText(ERROR_MESSAGES.FORBIDDEN)).toBeInTheDocument();
+    // 일반 오류 문구로 뭉뚱그려지지 않는다 — 이게 이 결함의 핵심이다.
+    expect(screen.queryByText(ERROR_MESSAGES.INTERNAL_ERROR)).not.toBeInTheDocument();
+    expect(screen.queryByText(/access denied for user 42/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+
+  test("503 AGENT_UNAVAILABLE 이면 AI 처리 전용 안내를 보여준다", async () => {
+    server.use(
+      http.get(CARD_ENDPOINT, () => fail("AGENT_UNAVAILABLE", "agent pool exhausted", 503)),
+    );
+
+    expect(await renderCardError()).toBeInTheDocument();
+    expect(screen.getByText(ERROR_MESSAGES.AGENT_UNAVAILABLE)).toBeInTheDocument();
+    expect(screen.queryByText(ERROR_MESSAGES.FORBIDDEN)).not.toBeInTheDocument();
+    expect(screen.queryByText(/agent pool exhausted/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+
+  test("일반 500 이면 화면의 기존 일반 오류 안내를 그대로 보여준다", async () => {
+    server.use(http.get(CARD_ENDPOINT, () => fail("INTERNAL_ERROR", "npe at ReportService", 500)));
+
+    expect(await renderCardError()).toBeInTheDocument();
+    // 원인이 특정되지 않는 코드는 화면이 원래 쓰던 안내를 유지한다(문구 변경 없음).
+    expect(
+      screen.getByText("일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(ERROR_MESSAGES.FORBIDDEN)).not.toBeInTheDocument();
+    expect(screen.queryByText(/npe at ReportService/)).not.toBeInTheDocument();
+  });
+
+  test("코드 없는 네트워크 오류면 안전한 기존 fallback 안내를 보여준다", async () => {
+    // 응답 자체가 오지 않는다 → 봉투도 error.code 도 없다.
+    server.use(http.get(CARD_ENDPOINT, () => HttpResponse.error()));
+
+    expect(await renderCardError()).toBeInTheDocument();
+    expect(
+      screen.getByText("일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+
+  test("오류 뒤 다시 시도를 누르면 재조회해 정상 화면으로 돌아온다", async () => {
+    server.use(http.get(CARD_ENDPOINT, () => fail("FORBIDDEN", "access denied", 403)));
+
+    expect(await renderCardError()).toBeInTheDocument();
+
+    // 권한이 회복된 뒤의 재시도 — refetch 동작이 그대로인지 확인한다.
+    server.use(
+      http.get(CARD_ENDPOINT, () => ok(PUBLIC_CARD)),
+      http.get(REPORT_ENDPOINT, () => ok(REPORT_BODY)),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: PUBLIC_CARD.title }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(ERROR_MESSAGES.FORBIDDEN)).not.toBeInTheDocument();
   });
 });
